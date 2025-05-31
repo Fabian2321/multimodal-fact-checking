@@ -1,0 +1,10 @@
+Evaluation Report
+====================
+Accuracy: 0.6979
+Precision: 0.6042
+Recall: 0.7436
+F1_score: 0.6667
+
+--- Placeholder for Advanced Explainability Metrics ---
+Quality of generated explanations (human-annotated relevance): TODO
+Visualization of attention weights or Grad-CAM heatmaps: TODO (qualitative analysis)

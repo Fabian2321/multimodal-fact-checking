@@ -111,16 +111,27 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
         with open(report_path, 'w') as f:
             f.write("Evaluation Report\n")
             f.write("====================\n")
-            for metric_name, value in metrics.items():
-                f.write(f"{metric_name.capitalize()}: {value:.4f}\n")
+            # Overall metrics (macro average)
+            macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro', zero_division=0)
+            accuracy = accuracy_score(y_true, y_pred)
             
-            if generated_text_col in results_df.columns:
-                f.write("\n--- Sample Generated Texts/Explanations ---\n")
+            f.write(f"Overall Accuracy: {accuracy:.4f}\n")
+            f.write(f"Macro Precision: {macro_precision:.4f}\n")
+            f.write(f"Macro Recall: {macro_recall:.4f}\n")
+            f.write(f"Macro F1-score: {macro_f1:.4f}\n")
+            f.write("\n\n--- Classification Report (Per Class) ---\n")
+            
+            # Detailed classification report
+            from sklearn.metrics import classification_report
+            report_str = classification_report(y_true, y_pred, target_names=class_names, zero_division=0)
+            f.write(report_str)
+            
+            if generated_text_col in results_df.columns and results_df[generated_text_col].notna().any():
+                f.write("\n\n--- Sample Generated Texts/Explanations ---\n")
                 # Write a few examples of generated text, true labels, and predicted labels
                 sample_size = min(5, len(results_df))
                 for i in range(sample_size):
-                    f.write(f"  Sample {i+1} (ID: {results_df.iloc[i].get('id', 'N/A')}):
-")
+                    f.write(f"  Sample {i+1} (ID: {results_df.iloc[i].get('id', 'N/A')}:\n")
                     f.write(f"    True: {results_df.iloc[i][true_label_col]}, Predicted: {results_df.iloc[i][pred_label_col]}\n")
                     f.write(f"    Generated Text: {results_df.iloc[i][generated_text_col]}\n")
             

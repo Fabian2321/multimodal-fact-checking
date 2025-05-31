@@ -1,0 +1,320 @@
+ID: awxhir
+Text: my walgreens offbrand mucinex was engraved with the letters mucinex but in a different order
+True Label: 1
+Generated Explanation: No. i have a walgreens offbrand tylenol but in a different order
+------------------------------
+ID: 98pbid
+Text: this concerned sink with a tiny hat
+True Label: 0
+Generated Explanation: Yes. this is a picture of a hat with a tiny hat
+------------------------------
+ID: 6f2cy5
+Text: hackers leak emails from uae ambassador to us
+True Label: 1
+Generated Explanation: No. 'hackers leak emails from uae ambassador to us'
+------------------------------
+ID: 8gnet9
+Text: i found a face in my sheet music too
+True Label: 0
+Generated Explanation: Yes. i found a face in my sheet music too
+------------------------------
+ID: 2vkbtj
+Text: bride and groom exchange vows after fatal shooting at their wedding
+True Label: 1
+Generated Explanation: Yes. a bride and groom kiss in the middle of a wedding ceremony
+------------------------------
+ID: 6d50rl
+Text: major thermos
+True Label: 0
+Generated Explanation: Yes. a tee shirt with a hat and a hat
+------------------------------
+ID: 86byl8
+Text: rabbi meat from cloned pig could be kosher for jews to eat with milk
+True Label: 1
+Generated Explanation: Yes. rabbi meat from cloned pig could be kosher for jews to eat with milk
+------------------------------
+ID: cgp0lmq
+Text: cutouts
+True Label: 0
+Generated Explanation: Yes. a 'cutout' is a type of shape that is cut out of a shape
+------------------------------
+ID: 98vrcq
+Text: jesus christ converting local teens to christianity repainted and then circa ad
+True Label: 0
+Generated Explanation: No. christianity vs. islam
+------------------------------
+ID: bmg5cj
+Text: victory the great european crusade vichy france
+True Label: 0
+Generated Explanation: Yes. victory the great european crusade vs rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome rome
+------------------------------
+ID: 4zd1tb
+Text: english village becomes climate leader by quietly cleaning up its own patch
+True Label: 1
+Generated Explanation: No. a scottish village becomes a leader in the fight against climate change
+------------------------------
+ID: cocpysr
+Text: i aint flying over no moon
+True Label: 0
+Generated Explanation: Yes. i aint flying over no moon
+------------------------------
+ID: 9g2b4h
+Text: seven doggly sins sloth
+True Label: 0
+Generated Explanation: Yes. 'seven doggly sins sloth' seems to match the image
+------------------------------
+ID: 796d3z
+Text: cutest baby cow ive seen in my head all day and just enjoy destiny for what it is
+True Label: 0
+Generated Explanation: No. a sexy baby cow i have seen in my head all day and just enjoy destiny for what it is
+------------------------------
+ID: 2cfi7g
+Text: asian girl wearing virtual reality goggles holding a very surprised looking cat
+True Label: 1
+Generated Explanation: Yes. asian girl wearing virtual reality goggles and holding a cat
+------------------------------
+ID: bjmfr7
+Text: the way the rain made a silhouette of my bike
+True Label: 1
+Generated Explanation: Yes. the way the rain made a silhouette of my bike
+------------------------------
+ID: 3u0our
+Text: how to selfdiagnose yourself with a mental illness in easy steps
+True Label: 0
+Generated Explanation: Yes. a man in a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and a blue shirt with a blue shirt and
+------------------------------
+ID: 7asj25
+Text: love and peace the washington way soviet union
+True Label: 0
+Generated Explanation: No. 'love and peace the russian union'
+------------------------------
+ID: c2mktw
+Text: a view of london that you can only see from the strangers bar in the palace of westminster
+True Label: 1
+Generated Explanation: Yes. a view of london from the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the tower of the
+------------------------------
+ID: ctdk4x3
+Text: what goes best with genocide red or white i can never remember
+True Label: 0
+Generated Explanation: Yes. i can't remember
+------------------------------
+ID: 6i2pbj
+Text: happy boat with some friends
+True Label: 0
+Generated Explanation: Yes. a happy boat with some friends
+------------------------------
+ID: 212vud
+Text: the tree was angry at me for felling it
+True Label: 0
+Generated Explanation: Yes. the tree was angry at me for cutting it down
+------------------------------
+ID: 22d477
+Text: governor chris christie reacts to a statement in an interview
+True Label: 1
+Generated Explanation: No. a spokesman for the governor of california resigned from his position
+------------------------------
+ID: 1922a5
+Text: applying to join the chinese communist party music video w english subtitles
+True Label: 0
+Generated Explanation: Yes. 'applying to join the chinese communist party music video w english subtitles'
+------------------------------
+ID: 9c9j6v
+Text: my dads neighbor used to own ambulance company he is moving so we got to see this
+True Label: 1
+Generated Explanation: No. he is moving so we got to see this
+------------------------------
+ID: c69yqn0
+Text: are you not entertained
+True Label: 0
+Generated Explanation: Yes. 'are you not entertained' seems to match the image
+------------------------------
+ID: 15ilmc
+Text: creepy guy with creepy hair staring creepily
+True Label: 1
+Generated Explanation: Yes. a creepy guy with creepy hair staring creepily at the camera
+------------------------------
+ID: b7gj1e
+Text: rain made this iron slab wall a beautiful red
+True Label: 1
+Generated Explanation: Yes. a beautiful red wall is a perfect example of how a red wall can be used to create a beautiful wall
+------------------------------
+ID: 4h209r
+Text: president making a point in the parliament
+True Label: 1
+Generated Explanation: Yes. a president making a point in parliament
+------------------------------
+ID: c8ga79q
+Text: stewie
+True Label: 0
+Generated Explanation: Yes. stewie is a character in the tv series ' stewie and stewie
+------------------------------
+ID: 6ttusb
+Text: destiny finally comes to pc on steam but theres a big catch
+True Label: 0
+Generated Explanation: Yes. 'destiny finally comes to pc on steam but theres a big catch'
+------------------------------
+ID: 3948of
+Text: piglets on the loose after truck overturns
+True Label: 1
+Generated Explanation: Yes. a piglet on the ground after a truck overturned
+------------------------------
+ID: chb5foi
+Text: quick and obvious
+True Label: 0
+Generated Explanation: Yes. a quick and obvious match
+------------------------------
+ID: 9f7p90
+Text: happy fella in my penske rental
+True Label: 0
+Generated Explanation: Yes. a happy fella in my pen
+------------------------------
+ID: 8fw3po
+Text: oo
+True Label: 0
+Generated Explanation: Yes. ooo
+------------------------------
+ID: avafi5
+Text: this playable cd in the shape of a square
+True Label: 1
+Generated Explanation: Yes. this playable cd in the shape of a square
+------------------------------
+ID: 2auudp
+Text: a sun bear sitting down x
+True Label: 1
+Generated Explanation: Yes. a sun bear sitting down
+------------------------------
+ID: 9j3a9w
+Text: not sure how i feel about this
+True Label: 1
+Generated Explanation: Yes. i feel like i'm not sure how i feel about this
+------------------------------
+ID: 39mh2p
+Text: fine sushi
+True Label: 0
+Generated Explanation: Yes. a fine sushi is a sushi roll that is sliced into thin slices and served with a sauce
+------------------------------
+ID: bl11vl
+Text: this car has a door bolt
+True Label: 1
+Generated Explanation: Yes. this car has a door bolt
+------------------------------
+ID: 143c94
+Text: the shadow
+True Label: 1
+Generated Explanation: Yes. the shadows seem to match the image
+------------------------------
+ID: 61uy4u
+Text: el chapo escapes altiplano prison th
+True Label: 0
+Generated Explanation: Yes. el chapo escapes altiplano prison
+------------------------------
+ID: chli5s
+Text: this lighting desk has oops and please keys
+True Label: 1
+Generated Explanation: Yes. a computer keyboard has a 's' and 's'
+------------------------------
+ID: cpy9p6
+Text: bunny rock
+True Label: 0
+Generated Explanation: Yes. a rock is a rock that is formed by the action of a rock
+------------------------------
+ID: 15dcu6
+Text: excited ashtray
+True Label: 0
+Generated Explanation: Yes. a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of a symphony of
+------------------------------
+ID: auk0vy
+Text: this image of spike lee and sam jackson at the oscars
+True Label: 1
+Generated Explanation: Yes. sam jackson and sam lee at the oscars
+------------------------------
+ID: c2o619
+Text: this is what it looks like behind the dome screen of an omnimax museum theatre
+True Label: 1
+Generated Explanation: Yes. 'this is what it looks like behind the dome of an omnimax museum theatre'
+------------------------------
+ID: baydyy
+Text: report reveals jesus christ have benefited from fathers influential position to gain highpowered role as lord and savior
+True Label: 0
+Generated Explanation: No. christianity christianity is the belief that the christian faith is a religion that is based on the teachings of the bible and the teachings of the church of jesus christi
+------------------------------
+ID: 20uup4
+Text: barack obama dancing with ellen degeneres
+True Label: 1
+Generated Explanation: Yes. a dance with ellen degeneres
+------------------------------
+ID: cftdth3
+Text: quit horsing around
+True Label: 0
+Generated Explanation: Yes. a horse is a horse
+------------------------------
+ID: 63r5xj
+Text: comfort cases former foster child helps other kids in foster care
+True Label: 1
+Generated Explanation: No. a former foster child helps other foster children
+------------------------------
+ID: ckbnyyo
+Text: other discussions
+True Label: 0
+Generated Explanation: Yes. 'other discussions' seems to match the image
+------------------------------
+ID: er6eggt
+Text: available here
+True Label: 0
+Generated Explanation: Yes. 'available here' seems to match the image
+------------------------------
+ID: c0xtrn
+Text: this leaf in the shape of an upvotedownvote
+True Label: 1
+Generated Explanation: No. a leaf in the shape of an upvoted
+------------------------------
+ID: 49h4rm
+Text: a tattoo artist is covering up the scars of people who have overcome self harm for free
+True Label: 1
+Generated Explanation: Yes. a tattoo artist is covering up the scars of people who have overcome self harm
+------------------------------
+ID: 7isuvk
+Text: this little guy stuck in the snow
+True Label: 0
+Generated Explanation: Yes. a little guy stuck in the snow
+------------------------------
+ID: cf5c7r5
+Text: a wedding to bark about
+True Label: 0
+Generated Explanation: Yes. a wedding to bark about
+------------------------------
+ID: cmeidmd
+Text: looter land
+True Label: 0
+Generated Explanation: Yes. a sandbox
+------------------------------
+ID: 75yogr
+Text: your cable company would hate us if it knew we told you about this device on amazon
+True Label: 0
+Generated Explanation: No. if you want to be able to see the image of the person you are looking at
+------------------------------
+ID: cainsb0
+Text: theres only one girl in this picture for me
+True Label: 0
+Generated Explanation: Yes. a girl in this picture for me
+------------------------------
+ID: 9r3pbe
+Text: the difference the light makes on these tiles
+True Label: 1
+Generated Explanation: Yes. the difference between the light and the light
+------------------------------
+ID: 5hn94m
+Text: a fish in the new england aquarium
+True Label: 1
+Generated Explanation: Yes. a fish in the new england aquarium
+------------------------------
+ID: 4vblj5
+Text: he cant do it alone proempire long long ago date unknown
+True Label: 0
+Generated Explanation: No. he cant do it alone
+------------------------------
+ID: 60o1d9
+Text: the flying tigers of the free world strike again korean warera leaflet
+True Label: 0
+Generated Explanation: Yes. the text: 'the flying tigers of the free world strike again korean war'
+------------------------------

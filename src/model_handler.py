@@ -1,8 +1,20 @@
 from transformers import (CLIPModel, CLIPProcessor, 
                         BlipForConditionalGeneration, BlipProcessor, BlipForImageTextRetrieval, # Example BLIP models
-                        AutoImageProcessor, AutoTokenizer, AutoModelForSequenceClassification)
+                        AutoImageProcessor, AutoTokenizer, AutoModelForSequenceClassification,
+                        Blip2Processor, Blip2ForConditionalGeneration,
+                        AutoProcessor, AutoModelForCausalLM, BertTokenizerFast, BertForSequenceClassification,
+                        LlavaForConditionalGeneration, # Use this for LLaVA 1.5
+                        # LlavaNextProcessor, LlavaNextForConditionalGeneration # Keep commented for now
+                        ) # Added BLIP-2 classes and LLaVA
 import torch
 from PIL import Image
+import logging
+
+# Setup logger
+logger = logging.getLogger(__name__)
+# Basic config if not configured by the main script, or use setup_logger from utils
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # --- CLIP Model and Processor --- 
 def load_clip(model_name="openai/clip-vit-base-patch32"):
@@ -59,14 +71,43 @@ def process_batch_for_clip(batch, clip_processor, device="cpu"):
 # --- BLIP Model and Processor --- 
 # Example: BLIP for VQA or Image Captioning
 def load_blip_conditional(model_name="Salesforce/blip-image-captioning-base"):
-    """Loads a BLIP model for conditional generation (e.g., captioning) and its processor."""
+    """Loads a BLIP or BLIP-2 model for conditional generation and its processor."""
     try:
-        model = BlipForConditionalGeneration.from_pretrained(model_name)
-        processor = BlipProcessor.from_pretrained(model_name)
-        print(f"BLIP model and processor '{model_name}' loaded successfully.")
+        if "blip2" in model_name.lower():
+            print(f"Detected BLIP-2 model name: '{model_name}'. Attempting to load with Blip2 classes.")
+            # For BLIP-2, especially larger models, using float16 and device_map can be crucial.
+            # Ensure 'accelerate' package is installed for device_map="auto".
+            try:
+                processor = Blip2Processor.from_pretrained(model_name)
+                model = Blip2ForConditionalGeneration.from_pretrained(
+                    model_name, 
+                    torch_dtype=torch.float16, # Use float16 for memory efficiency
+                    device_map="auto" # Automatically maps model to available devices (GPU/CPU)
+                )
+                print(f"BLIP-2 model and processor '{model_name}' loaded successfully with device_map='auto' and float16.")
+            except ImportError as ie:
+                if "accelerate" in str(ie).lower():
+                    print(f"WARNING: '{model_name}' requires 'accelerate' for device_map. Trying without device_map.")
+                    processor = Blip2Processor.from_pretrained(model_name)
+                    model = Blip2ForConditionalGeneration.from_pretrained(model_name, torch_dtype=torch.float16)
+                    print(f"BLIP-2 model and processor '{model_name}' loaded successfully with float16 (no device_map).")
+                else:
+                    raise # Re-raise other import errors
+            except Exception as e_blip2:
+                print(f"Error loading BLIP-2 model '{model_name}' even with Blip2 classes: {e_blip2}")
+                print("Falling back to try with original BlipForConditionalGeneration (less likely to work for BLIP-2 names).")
+                # Fallback to original Blip classes if Blip2 specific loading failed for some reason (e.g. misidentified name)
+                model = BlipForConditionalGeneration.from_pretrained(model_name) 
+                processor = BlipProcessor.from_pretrained(model_name)
+                print(f"BLIP model (using BlipForConditionalGeneration) and processor '{model_name}' loaded after BLIP-2 attempt failed.")
+        else:
+            print(f"Detected standard BLIP model name: '{model_name}'. Loading with BlipForConditionalGeneration.")
+            model = BlipForConditionalGeneration.from_pretrained(model_name)
+            processor = BlipProcessor.from_pretrained(model_name)
+            print(f"BLIP model and processor '{model_name}' loaded successfully.")
         return model, processor
     except Exception as e:
-        print(f"Error loading BLIP model '{model_name}': {e}")
+        print(f"Overall error loading BLIP/BLIP-2 model '{model_name}': {e}")
         return None, None
 
 def process_batch_for_blip_conditional(batch, blip_processor, task="captioning", device="cpu", target_texts=None, max_length=32):
@@ -138,6 +179,50 @@ def process_batch_for_bert_classifier(batch, bert_tokenizer, device="cpu", max_l
     except Exception as e:
         print(f"Error processing batch for BERT classifier: {e}")
         raise
+
+# --- LLaVA Functions (Revised for LLaVA 1.5) ---
+def load_llava(model_name_or_path, **kwargs):
+    """
+    Loads a LLaVA 1.5 model and processor.
+    Uses LlavaForConditionalGeneration and AutoProcessor.
+    """
+    logger.info(f"Loading LLaVA 1.5 model and processor from: {model_name_or_path}")
+    try:
+        # AutoProcessor should correctly load the LlavaProcessor for LLaVA 1.5 models
+        processor = AutoProcessor.from_pretrained(model_name_or_path)
+        model = LlavaForConditionalGeneration.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            **kwargs
+        )
+        logger.info(f"LLaVA 1.5 model {model_name_or_path} loaded successfully.")
+        return model, processor
+    except Exception as e:
+        logger.error(f"Error loading LLaVA 1.5 model {model_name_or_path}: {e}")
+        return None, None
+
+def process_batch_for_llava(batch, processor, device, llava_prompt_template):
+    """
+    Prepares a batch for LLaVA model inference.
+    The llava_prompt_template should include '{text}' for the text caption.
+    The processor for LLaVA 1.5 typically handles the <image> token insertion internally or requires a specific format.
+    Example template: "USER: <image>\nGiven the image and the caption '{text}', is this post misleading? Why or why not?\nASSISTANT:"
+    This template structure with USER: <image>... ASSISTANT: is common for LLaVA.
+    """
+    texts = batch['text']
+    images = batch['image'] # List of PIL Images
+
+    # Construct prompts. The <image> token is essential and its placement is dictated by the model's training.
+    # For llava-hf/llava-1.5-7b-hf, the prompt should typically start with "USER: <image>\n" followed by the question.
+    prompts = [llava_prompt_template.format(text=t) for t in texts]
+
+    try:
+        inputs = processor(text=prompts, images=images, return_tensors="pt", padding=True)
+        return inputs
+    except Exception as e:
+        logger.error(f"Error processing batch for LLaVA: {e}")
+        return None
 
 # --- Add other BLIP model types if needed (e.g., BlipForImageTextRetrieval) ---
 # def load_blip_retrieval(model_name="Salesforce/blip-itm-base-coco"):

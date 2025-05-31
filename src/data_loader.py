@@ -47,17 +47,31 @@ class FakedditDataset(Dataset):
         self.metadata = pd.DataFrame() # Initialize as empty DataFrame
 
         try:
-            temp_metadata = pd.read_csv(metadata_path, sep='\\t', low_memory=False)
-            
+            # Modified pd.read_csv for robustness and explicit engine
+            temp_metadata = pd.read_csv(metadata_path, sep='\\t', engine='python', on_bad_lines='warn')
+            print(f"INFO: Successfully read {metadata_path} using python engine. Loaded columns: {temp_metadata.columns.tolist()}")
+            print(f"INFO: Initial rows in metadata: {len(temp_metadata)}")
+
             required_cols = [self.has_image_col, self.image_id_col, self.image_url_col, self.text_col, self.label_col]
             if all(col in temp_metadata.columns for col in required_cols):
+                print(f"INFO: All required columns found: {required_cols}")
+
+                # Convert has_image_col to boolean if it's an object type
                 if temp_metadata[self.has_image_col].dtype == 'object':
+                    print(f"INFO: Converting '{self.has_image_col}' to boolean.")
                     temp_metadata[self.has_image_col] = temp_metadata[self.has_image_col].apply(
                         lambda x: str(x).lower() == 'true' if isinstance(x, str) else bool(x)
                     )
+                
                 self.metadata = temp_metadata[temp_metadata[self.has_image_col] == True].copy()
+                print(f"INFO: Rows after filtering by '{self.has_image_col}' == True: {len(self.metadata)}")
+                
                 self.metadata.dropna(subset=required_cols, inplace=True)
-                self.metadata = self.metadata[self.metadata[self.image_url_col].str.startswith('http')]
+                print(f"INFO: Rows after dropping NaNs in required columns: {len(self.metadata)}")
+                
+                # Filter for valid image URLs
+                self.metadata = self.metadata[self.metadata[self.image_url_col].str.startswith('http', na=False)].copy()
+                print(f"INFO: Rows after filtering for valid image URLs (startswith 'http'): {len(self.metadata)}")
             else:
                 missing = [col for col in required_cols if col not in temp_metadata.columns]
                 print(f"WARNING: Metadata file {metadata_path} missing columns: {missing}")
@@ -78,6 +92,28 @@ class FakedditDataset(Dataset):
 
     def __len__(self):
         return len(self.metadata)
+
+    def get_image_path(self, image_id):
+        """Constructs the local path for a given image ID."""
+        # Try to determine extension from metadata if possible, or default
+        # This logic might need to be more robust if image_url isn't always available here
+        # or if IDs are not unique enough without extension context.
+        file_extension = ".jpg" # Default
+        try:
+            # Attempt to find the original URL to infer extension; this is a bit indirect
+            # A better way might be to store the determined extension during _download_image or ensure IDs are unique file stems
+            row = self.metadata[self.metadata[self.image_id_col] == image_id].iloc[0]
+            url = row.get(self.image_url_col, "")
+            if isinstance(url, str):
+                if url.lower().endswith(".png"): file_extension = ".png"
+                elif url.lower().endswith(".jpeg"): file_extension = ".jpeg"
+        except (IndexError, KeyError):
+            # logger might be useful here if passed or a global one used
+            print(f"Warning: Could not determine original extension for image_id {image_id} in get_image_path. Defaulting to .jpg")
+            pass
+
+        sanitized_image_id = str(image_id).replace('/', '_').replace('\\\\', '_')
+        return os.path.join(self.downloaded_image_dir, f"{sanitized_image_id}{file_extension}")
 
     def _download_image(self, image_id, url):
         # Generate a file extension based on typical web image formats, default to .jpg

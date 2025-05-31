@@ -49,11 +49,11 @@ This project aims to develop and evaluate a multimodal fact-checking system usin
 
 The main pipeline can be run using `src/pipeline.py`.
 
-Example (run from the `multimodal-fact-checking` project root directory):
+Example (run from the project root directory):
 
 ```bash
 source .venv/bin/activate
-python src/pipeline.py --model_type clip --num_test_batches 1
+python src/pipeline.py --model_type clip --clip_model_name openai/clip-vit-base-patch32 --experiment_name clip_initial_test --num_samples 10
 ```
 
 Or for BLIP (VQA task by default):
