@@ -6,6 +6,12 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 import requests # For downloading images
 from io import BytesIO # For handling image bytes
+import logging # Import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Default image transformations - can be customized
 DEFAULT_IMAGE_TRANSFORMS = transforms.Compose([
@@ -20,7 +26,7 @@ class FakedditDataset(Dataset):
     Provides image data (either as transformed tensors or raw PIL images) and raw text strings.
     """
     def __init__(self, metadata_dir, metadata_file_name, 
-                 downloaded_image_dir="data/downloaded_images",
+                 downloaded_image_dir="data/downloaded_fakeddit_images",
                  transform="default_tensor", # Options: "default_tensor", None (for PIL), or a custom callable
                  image_id_col='id',
                  text_col='clean_title', label_col='2_way_label', image_url_col='image_url',
@@ -48,40 +54,40 @@ class FakedditDataset(Dataset):
 
         try:
             # Modified pd.read_csv for robustness and explicit engine
-            temp_metadata = pd.read_csv(metadata_path, sep='\\t', engine='python', on_bad_lines='warn')
-            print(f"INFO: Successfully read {metadata_path} using python engine. Loaded columns: {temp_metadata.columns.tolist()}")
-            print(f"INFO: Initial rows in metadata: {len(temp_metadata)}")
+            temp_metadata = pd.read_csv(metadata_path, sep=',', engine='python', on_bad_lines='warn')
+            logger.info(f"Successfully read {metadata_path} using python engine. Loaded columns: {temp_metadata.columns.tolist()}")
+            logger.info(f"Initial rows in metadata: {len(temp_metadata)}")
 
             required_cols = [self.has_image_col, self.image_id_col, self.image_url_col, self.text_col, self.label_col]
             if all(col in temp_metadata.columns for col in required_cols):
-                print(f"INFO: All required columns found: {required_cols}")
+                logger.info(f"All required columns found: {required_cols}")
 
                 # Convert has_image_col to boolean if it's an object type
                 if temp_metadata[self.has_image_col].dtype == 'object':
-                    print(f"INFO: Converting '{self.has_image_col}' to boolean.")
+                    logger.info(f"Converting '{self.has_image_col}' to boolean.")
                     temp_metadata[self.has_image_col] = temp_metadata[self.has_image_col].apply(
                         lambda x: str(x).lower() == 'true' if isinstance(x, str) else bool(x)
                     )
                 
                 self.metadata = temp_metadata[temp_metadata[self.has_image_col] == True].copy()
-                print(f"INFO: Rows after filtering by '{self.has_image_col}' == True: {len(self.metadata)}")
+                logger.info(f"Rows after filtering by '{self.has_image_col}' == True: {len(self.metadata)}")
                 
                 self.metadata.dropna(subset=required_cols, inplace=True)
-                print(f"INFO: Rows after dropping NaNs in required columns: {len(self.metadata)}")
+                logger.info(f"Rows after dropping NaNs in required columns: {len(self.metadata)}")
                 
                 # Filter for valid image URLs
                 self.metadata = self.metadata[self.metadata[self.image_url_col].str.startswith('http', na=False)].copy()
-                print(f"INFO: Rows after filtering for valid image URLs (startswith 'http'): {len(self.metadata)}")
+                logger.info(f"Rows after filtering for valid image URLs (startswith 'http'): {len(self.metadata)}")
             else:
                 missing = [col for col in required_cols if col not in temp_metadata.columns]
-                print(f"WARNING: Metadata file {metadata_path} missing columns: {missing}")
+                logger.warning(f"Metadata file {metadata_path} missing columns: {missing}")
             if self.metadata.empty:
-                print(f"WARNING: Metadata empty after filtering in {metadata_path}.")
+                logger.warning(f"Metadata empty after filtering in {metadata_path}.")
 
         except FileNotFoundError:
-            print(f"ERROR: Metadata file not found: {metadata_path}")
+            logger.error(f"Metadata file not found: {metadata_path}")
         except Exception as e:
-            print(f"Error loading metadata {metadata_path}: {e}")
+            logger.error(f"Error loading metadata {metadata_path}: {e}")
 
         if transform == "default_tensor":
             self.transform_to_apply = DEFAULT_IMAGE_TRANSFORMS
@@ -108,8 +114,7 @@ class FakedditDataset(Dataset):
                 if url.lower().endswith(".png"): file_extension = ".png"
                 elif url.lower().endswith(".jpeg"): file_extension = ".jpeg"
         except (IndexError, KeyError):
-            # logger might be useful here if passed or a global one used
-            print(f"Warning: Could not determine original extension for image_id {image_id} in get_image_path. Defaulting to .jpg")
+            logger.warning(f"Could not determine original extension for image_id {image_id} in get_image_path. Defaulting to .jpg")
             pass
 
         sanitized_image_id = str(image_id).replace('/', '_').replace('\\\\', '_')
@@ -124,7 +129,7 @@ class FakedditDataset(Dataset):
             elif url.lower().endswith(".jpeg"):
                 file_extension = ".jpeg"
         else: # If URL is not a string (e.g. float if column had mixed types before dropna)
-            print(f"Warning: Invalid URL type for image id {image_id}: {url}. Skipping download.")
+            logger.warning(f"Invalid URL type for image id {image_id}: {url}. Skipping download.")
             return None
         
         sanitized_image_id = str(image_id).replace('/', '_').replace('\\\\', '_')
@@ -135,7 +140,7 @@ class FakedditDataset(Dataset):
                 image = Image.open(local_img_path).convert('RGB')
                 return image
             except Exception as e:
-                print(f"Warning: Could not open existing image {local_img_path}: {e}. Will attempt re-download.")
+                logger.warning(f"Could not open existing image {local_img_path}: {e}. Will attempt re-download.")
                 try:
                     os.remove(local_img_path)
                 except OSError:
@@ -149,17 +154,17 @@ class FakedditDataset(Dataset):
             
             # Ensure content is not too small (very basic check for empty/error pages)
             if 'content-length' in response.headers and int(response.headers['content-length']) < 1024:
-                print(f"Warning: Content length for {url} (id {image_id}) is very small. Potential issue.")
+                logger.warning(f"Content length for {url} (id {image_id}) is very small. Potential issue.")
 
             image = Image.open(BytesIO(response.content)).convert('RGB')
             image.save(local_img_path)
             return image
         except requests.exceptions.RequestException as e:
-            print(f"Warning: Could not download image for id {image_id} from {url}. Error: {e}")
+            logger.warning(f"Could not download image for id {image_id} from {url}. Error: {e}")
         except IOError as e:
-            print(f"Warning: Downloaded content for id {image_id} from {url} is not a valid image or cannot be opened. Error: {e}")
+            logger.warning(f"Downloaded content for id {image_id} from {url} is not a valid image or cannot be opened. Error: {e}")
         except Exception as e:
-            print(f"Warning: An unexpected error occurred while downloading/saving image for id {image_id} from {url}. Error: {e}")
+            logger.warning(f"An unexpected error occurred while downloading/saving image for id {image_id} from {url}. Error: {e}")
         return None
 
     def __getitem__(self, idx):
@@ -180,7 +185,7 @@ class FakedditDataset(Dataset):
             
             output_image = None
             if pil_image is None: 
-                print(f"Warning: Image for id {img_id} failed to load. Creating dummy PIL.")
+                logger.warning(f"Image for id {img_id} failed to load. Creating dummy PIL.")
                 pil_image = Image.new('RGB', (224, 224), (200, 200, 200)) # Grey placeholder PIL
             
             if self.transform_to_apply:
@@ -191,7 +196,7 @@ class FakedditDataset(Dataset):
             try:
                 numeric_label = int(label)
             except ValueError:
-                print(f"Warning: Label '{label}' for id {img_id} not int. Using -1.")
+                logger.warning(f"Label '{label}' for id {img_id} not int. Using -1.")
                 numeric_label = -1 
 
             sample = {
@@ -202,44 +207,44 @@ class FakedditDataset(Dataset):
             }
 
         except KeyError as e:
-            print(f"KeyError: {e} for index {idx}. Check column names.")
+            logger.error(f"KeyError: {e} for index {idx}. Check column names.")
             return None 
         except Exception as e:
-            print(f"Error at index {idx}, ID {self.metadata.iloc[idx].get(self.image_id_col, 'UNKNOWN')}: {e}")
+            logger.error(f"Error at index {idx}, ID {self.metadata.iloc[idx].get(self.image_id_col, 'UNKNOWN')}: {e}")
             return None
         return sample
 
 # Example usage (for testing the FakedditDataset class)
 if __name__ == '__main__':
-    print("--- Testing FakedditDataset --- ")
+    logger.info("--- Testing FakedditDataset --- ")
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    METADATA_DIR = os.path.join(PROJECT_ROOT, 'data', 'raw')
-    DOWNLOAD_DIR = os.path.join(PROJECT_ROOT, 'data', 'downloaded_test_images')
-    METADATA_FILE = 'multimodal_train.csv'
+    METADATA_DIR = os.path.join(PROJECT_ROOT, 'data', 'processed')
+    DOWNLOAD_DIR = os.path.join(PROJECT_ROOT, 'data', 'downloaded_fakeddit_images')
+    METADATA_FILE = 'train_correct_pairs.csv'
 
-    print(f"Project root assumed: {PROJECT_ROOT}")
-    print(f"Metadata: {os.path.join(METADATA_DIR, METADATA_FILE)}")
-    print(f"Download dir: {DOWNLOAD_DIR}")
+    logger.info(f"Project root assumed: {PROJECT_ROOT}")
+    logger.info(f"Metadata: {os.path.join(METADATA_DIR, METADATA_FILE)}")
+    logger.info(f"Download dir: {DOWNLOAD_DIR}")
 
-    print("\n--- Test 1: Loading with default tensor transform ---")
+    logger.info("\n--- Test 1: Loading with default tensor transform ---")
     dataset_tensor = FakedditDataset(METADATA_DIR, METADATA_FILE, DOWNLOAD_DIR)
     if len(dataset_tensor) > 0:
         sample_tensor = dataset_tensor[0]
         if sample_tensor:
-            print(f"Sample 0 (tensor): ID {sample_tensor['id']}, Image type: {type(sample_tensor['image'])}, Image shape/val: {sample_tensor['image'].shape if isinstance(sample_tensor['image'], torch.Tensor) else 'Not a Tensor'}, Text: \"{sample_tensor['text'][:30]}...\", Label: {sample_tensor['label']}")
+            logger.info(f"Sample 0 (tensor): ID {sample_tensor['id']}, Image type: {type(sample_tensor['image'])}, Image shape/val: {sample_tensor['image'].shape if isinstance(sample_tensor['image'], torch.Tensor) else 'Not a Tensor'}, Text: \"{sample_tensor['text'][:30]}...\", Label: {sample_tensor['label']}")
     else:
-        print("Tensor dataset is empty.")
+        logger.info("Tensor dataset is empty.")
 
-    print("\n--- Test 2: Loading with transform=None (to get PIL images) ---")
+    logger.info("\n--- Test 2: Loading with transform=None (to get PIL images) ---")
     dataset_pil = FakedditDataset(METADATA_DIR, METADATA_FILE, DOWNLOAD_DIR, transform=None)
     if len(dataset_pil) > 0:
         sample_pil = dataset_pil[0]
         if sample_pil:
-            print(f"Sample 0 (PIL): ID {sample_pil['id']}, Image type: {type(sample_pil['image'])}, Image size: {sample_pil['image'].size if isinstance(sample_pil['image'], Image.Image) else 'Not a PIL Image'}, Text: \"{sample_pil['text'][:30]}...\", Label: {sample_pil['label']}")
+            logger.info(f"Sample 0 (PIL): ID {sample_pil['id']}, Image type: {type(sample_pil['image'])}, Image size: {sample_pil['image'].size if isinstance(sample_pil['image'], Image.Image) else 'Not a PIL Image'}, Text: \"{sample_pil['text'][:30]}...\", Label: {sample_pil['label']}")
     else:
-        print("PIL dataset is empty.")
+        logger.info("PIL dataset is empty.")
 
-    print("\n--- Test 3: DataLoader with PIL images (requires collate_fn that handles PIL) ---")
+    logger.info("\n--- Test 3: DataLoader with PIL images (requires collate_fn that handles PIL) ---")
     if len(dataset_pil) > 0:
         from torch.utils.data import DataLoader
         
@@ -257,10 +262,10 @@ if __name__ == '__main__':
         try:
             pil_batch = next(iter(dataloader_pil))
             if pil_batch:
-                print(f"PIL Batch: Image type in batch: {type(pil_batch['image'][0]) if pil_batch['image'] else 'N/A'}, Num images: {len(pil_batch['image']) if pil_batch['image'] else 0}")
+                logger.info(f"PIL Batch: Image type in batch: {type(pil_batch['image'][0]) if pil_batch['image'] else 'N/A'}, Num images: {len(pil_batch['image']) if pil_batch['image'] else 0}")
         except StopIteration:
-            print("PIL DataLoader is empty.")
+            logger.info("PIL DataLoader is empty.")
         except Exception as e:
-            print(f"Error iterating PIL DataLoader: {e}")
+            logger.error(f"Error iterating PIL DataLoader: {e}")
     else:
-        print("PIL dataset empty, skipping DataLoader test.") 
+        logger.info("PIL dataset empty, skipping DataLoader test.") 

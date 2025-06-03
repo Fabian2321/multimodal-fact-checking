@@ -60,8 +60,8 @@ def main(args):
     print("\n--- Loading Data ---")
     # Construct full paths based on project structure
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    metadata_dir = os.path.join(project_root, args.data_dir, 'raw')
-    downloaded_image_dir = os.path.join(project_root, args.data_dir, 'downloaded_images_pipeline')
+    metadata_dir = os.path.join(project_root, args.data_dir, 'processed')
+    downloaded_image_dir = os.path.join(project_root, args.data_dir, 'downloaded_fakeddit_images')
     
     print(f"Metadata directory: {metadata_dir}")
     print(f"Image download directory: {downloaded_image_dir}")
@@ -423,7 +423,7 @@ if __name__ == '__main__':
     parser.add_argument("--llava_model_name", type=str, default="llava-hf/llava-1.5-7b-hf", help="LLaVA model name from Hugging Face.")
     parser.add_argument("--num_labels", type=int, default=2, help="Number of labels for classification (e.g., 2 for fake/real).")
     parser.add_argument("--blip_task", type=str, default="vqa", choices=["vqa", "captioning", "classification_prompted"], help="Task for BLIP model conditional processing.")
-    parser.add_argument("--blip_max_text_length", type=int, default=32, help="Max text length for BLIP processor (old, might be deprecated by specific model processing).")
+    # parser.add_argument("--blip_max_text_length", type=int, default=32, help="Max text length for BLIP processor (old, might be deprecated by specific model processing).")
     parser.add_argument("--llava_prompt_template", type=str, 
                         default="USER: <image>\nGiven the image and the caption '{text}', is this post misleading? Why or why not?\nASSISTANT:", 
                         help="Prompt template for LLaVA. Use '{text}' for caption and ensure '<image>' token is present for the processor.")

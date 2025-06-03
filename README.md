@@ -7,7 +7,6 @@ This project aims to develop and evaluate a multimodal fact-checking system usin
 - `.venv/`: Python virtual environment.
 - `data/`: Contains datasets.
   - `raw/`: Raw dataset files (e.g., Fakeddit CSVs).
-  - `downloaded_images_pipeline/`: Directory where images are downloaded by `pipeline.py`.
   - `downloaded_fakeddit_images/`: Directory where images are downloaded by `data_loader.py` (if run directly).
 - `models/`: Can store model-specific files, custom model definitions, or saved model checkpoints (though large checkpoints might be better handled with Git LFS or stored elsewhere).
 - `notebooks/`: Jupyter notebooks for experimentation, analysis, and visualization.

@@ -3,6 +3,12 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, con
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import logging # Import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def calculate_metrics(y_true, y_pred, y_prob=None, average='binary'):
     """
@@ -36,7 +42,7 @@ def calculate_metrics(y_true, y_pred, y_prob=None, average='binary'):
     #     try:
     #         metrics['roc_auc'] = roc_auc_score(y_true, y_prob)
     #     except ValueError as e:
-    #         print(f"Could not calculate ROC AUC: {e}. Ensure y_true contains both classes for binary classification.")
+    #         logger.warning(f"Could not calculate ROC AUC: {e}. Ensure y_true contains both classes for binary classification.")
     #         metrics['roc_auc'] = None
             
     return metrics
@@ -62,7 +68,7 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path=None, title='Co
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path)
-        print(f"Confusion matrix saved to {save_path}")
+        logger.info(f"Confusion matrix saved to {save_path}")
     else:
         plt.show()
 
@@ -83,7 +89,7 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
         figures_dir (str, optional): Directory to save figures like the confusion matrix (e.g., 'results/figures/').
     """
     if results_df.empty:
-        print("Results DataFrame is empty. Nothing to evaluate.")
+        logger.warning("Results DataFrame is empty. Nothing to evaluate.")
         return None
 
     y_true = results_df[true_label_col]
@@ -93,17 +99,17 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
     # Adapt class_names if your labels are different.
     class_names = ['Real', 'Fake'] 
     
-    print("\n--- Overall Metrics ---")
+    logger.info("\n--- Overall Metrics ---")
     metrics = calculate_metrics(y_true, y_pred, average='binary') # Or 'macro'/'weighted' for multi-class
     for metric_name, value in metrics.items():
-        print(f"{metric_name.capitalize()}: {value:.4f}")
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
 
     if figures_dir:
         cm_save_path = os.path.join(figures_dir, "confusion_matrix.png")
     else:
         cm_save_path = None
         
-    print("\n--- Confusion Matrix ---")
+    logger.info("\n--- Confusion Matrix ---")
     plot_confusion_matrix(y_true, y_pred, class_names=class_names, save_path=cm_save_path)
 
     if report_path:
@@ -139,7 +145,7 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
             f.write("Quality of generated explanations (human-annotated relevance): TODO\n")
             f.write("Visualization of attention weights or Grad-CAM heatmaps: TODO (qualitative analysis)\n")
             # TODO: Add more details to the report, e.g., per-class metrics, sample misclassifications.
-        print(f"Evaluation report saved to {report_path}")
+        logger.info(f"Evaluation report saved to {report_path}")
         
     return metrics
 

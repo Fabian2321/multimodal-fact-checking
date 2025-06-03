@@ -3,6 +3,13 @@ import logging
 import os
 import re
 
+# Setup logger for this module - use the setup_logger function itself for consistency
+# This allows configuration if this module is run directly, or uses a root logger if imported.
+logger = logging.getLogger(__name__) # Get a logger for this module
+if not logger.handlers: # Configure only if no handlers are already attached (e.g. by a root config)
+    # Basic configuration for direct use or if no other config is present
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 # --- Logging Setup ---
 def setup_logger(name='mllm_project', level=logging.INFO, log_file=None, file_mode='a'):
     """
@@ -62,11 +69,11 @@ def save_to_json(data, file_path, indent=4):
             
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=indent, ensure_ascii=False)
-        # print(f"Data successfully saved to {file_path}") # Optional: for verbosity
+        logger.info(f"Data successfully saved to {file_path}")
     except IOError as e:
-        print(f"Error saving data to {file_path}: {e}")
+        logger.error(f"Error saving data to {file_path}: {e}")
     except TypeError as e:
-        print(f"Error serializing data to JSON: {e}")
+        logger.error(f"Error serializing data to JSON: {e}")
 
 def load_from_json(file_path):
     """
@@ -83,13 +90,13 @@ def load_from_json(file_path):
             data = json.load(f)
         return data
     except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
+        logger.error(f"Error: File not found at {file_path}")
         return None
     except json.JSONDecodeError as e:
-        print(f"Error decoding JSON from {file_path}: {e}")
+        logger.error(f"Error decoding JSON from {file_path}: {e}")
         return None
     except IOError as e:
-        print(f"Error reading data from {file_path}: {e}")
+        logger.error(f"Error reading data from {file_path}: {e}")
         return None
 
 # --- Text Normalization (Placeholder) ---

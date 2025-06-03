@@ -22,10 +22,10 @@ def load_clip(model_name="openai/clip-vit-base-patch32"):
     try:
         model = CLIPModel.from_pretrained(model_name)
         processor = CLIPProcessor.from_pretrained(model_name)
-        print(f"CLIP model and processor '{model_name}' loaded successfully.")
+        logger.info(f"CLIP model and processor '{model_name}' loaded successfully.")
         return model, processor
     except Exception as e:
-        print(f"Error loading CLIP model '{model_name}': {e}")
+        logger.error(f"Error loading CLIP model '{model_name}': {e}")
         return None, None
 
 def process_batch_for_clip(batch, clip_processor, device="cpu"):
@@ -63,9 +63,9 @@ def process_batch_for_clip(batch, clip_processor, device="cpu"):
         inputs = {k: v.to(device) for k, v in inputs.items()} # Move to device
         return inputs
     except Exception as e:
-        print(f"Error processing batch for CLIP: {e}")
+        logger.error(f"Error processing batch for CLIP: {e}")
         # This might happen if `images` are not PIL images as expected by CLIPProcessor
-        print("Ensure that the 'image' field in the batch contains PIL Images for CLIPProcessor.")
+        logger.error("Ensure that the 'image' field in the batch contains PIL Images for CLIPProcessor.")
         raise
 
 # --- BLIP Model and Processor --- 
@@ -74,7 +74,7 @@ def load_blip_conditional(model_name="Salesforce/blip-image-captioning-base"):
     """Loads a BLIP or BLIP-2 model for conditional generation and its processor."""
     try:
         if "blip2" in model_name.lower():
-            print(f"Detected BLIP-2 model name: '{model_name}'. Attempting to load with Blip2 classes.")
+            logger.info(f"Detected BLIP-2 model name: '{model_name}'. Attempting to load with Blip2 classes.")
             # For BLIP-2, especially larger models, using float16 and device_map can be crucial.
             # Ensure 'accelerate' package is installed for device_map="auto".
             try:
@@ -84,30 +84,30 @@ def load_blip_conditional(model_name="Salesforce/blip-image-captioning-base"):
                     torch_dtype=torch.float16, # Use float16 for memory efficiency
                     device_map="auto" # Automatically maps model to available devices (GPU/CPU)
                 )
-                print(f"BLIP-2 model and processor '{model_name}' loaded successfully with device_map='auto' and float16.")
+                logger.info(f"BLIP-2 model and processor '{model_name}' loaded successfully with device_map='auto' and float16.")
             except ImportError as ie:
                 if "accelerate" in str(ie).lower():
-                    print(f"WARNING: '{model_name}' requires 'accelerate' for device_map. Trying without device_map.")
+                    logger.warning(f"'{model_name}' requires 'accelerate' for device_map. Trying without device_map.")
                     processor = Blip2Processor.from_pretrained(model_name)
                     model = Blip2ForConditionalGeneration.from_pretrained(model_name, torch_dtype=torch.float16)
-                    print(f"BLIP-2 model and processor '{model_name}' loaded successfully with float16 (no device_map).")
+                    logger.info(f"BLIP-2 model and processor '{model_name}' loaded successfully with float16 (no device_map).")
                 else:
                     raise # Re-raise other import errors
             except Exception as e_blip2:
-                print(f"Error loading BLIP-2 model '{model_name}' even with Blip2 classes: {e_blip2}")
-                print("Falling back to try with original BlipForConditionalGeneration (less likely to work for BLIP-2 names).")
+                logger.error(f"Error loading BLIP-2 model '{model_name}' even with Blip2 classes: {e_blip2}")
+                logger.warning("Falling back to try with original BlipForConditionalGeneration (less likely to work for BLIP-2 names).")
                 # Fallback to original Blip classes if Blip2 specific loading failed for some reason (e.g. misidentified name)
                 model = BlipForConditionalGeneration.from_pretrained(model_name) 
                 processor = BlipProcessor.from_pretrained(model_name)
-                print(f"BLIP model (using BlipForConditionalGeneration) and processor '{model_name}' loaded after BLIP-2 attempt failed.")
+                logger.info(f"BLIP model (using BlipForConditionalGeneration) and processor '{model_name}' loaded after BLIP-2 attempt failed.")
         else:
-            print(f"Detected standard BLIP model name: '{model_name}'. Loading with BlipForConditionalGeneration.")
+            logger.info(f"Detected standard BLIP model name: '{model_name}'. Loading with BlipForConditionalGeneration.")
             model = BlipForConditionalGeneration.from_pretrained(model_name)
             processor = BlipProcessor.from_pretrained(model_name)
-            print(f"BLIP model and processor '{model_name}' loaded successfully.")
+            logger.info(f"BLIP model and processor '{model_name}' loaded successfully.")
         return model, processor
     except Exception as e:
-        print(f"Overall error loading BLIP/BLIP-2 model '{model_name}': {e}")
+        logger.error(f"Overall error loading BLIP/BLIP-2 model '{model_name}': {e}")
         return None, None
 
 def process_batch_for_blip_conditional(batch, blip_processor, task="captioning", device="cpu", target_texts=None, max_length=32):
@@ -145,8 +145,8 @@ def process_batch_for_blip_conditional(batch, blip_processor, task="captioning",
             
         return inputs
     except Exception as e:
-        print(f"Error processing batch for BLIP conditional task '{task}': {e}")
-        print("Ensure that the 'image' field in the batch contains PIL Images for BlipProcessor.")
+        logger.error(f"Error processing batch for BLIP conditional task '{task}': {e}")
+        logger.error("Ensure that the 'image' field in the batch contains PIL Images for BlipProcessor.")
         raise
 
 # --- BERT Model and Tokenizer for Text Classification ---
@@ -155,10 +155,10 @@ def load_bert_classifier(model_name="bert-base-uncased", num_labels=2):
     try:
         model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        print(f"BERT classifier model and tokenizer '{model_name}' loaded successfully.")
+        logger.info(f"BERT classifier model and tokenizer '{model_name}' loaded successfully.")
         return model, tokenizer
     except Exception as e:
-        print(f"Error loading BERT classifier model '{model_name}': {e}")
+        logger.error(f"Error loading BERT classifier model '{model_name}': {e}")
         return None, None
 
 def process_batch_for_bert_classifier(batch, bert_tokenizer, device="cpu", max_length=128):
@@ -169,7 +169,7 @@ def process_batch_for_bert_classifier(batch, bert_tokenizer, device="cpu", max_l
     raw_texts = batch['text'] # List of raw text strings
 
     if not raw_texts:
-        print("Warning: Empty text batch provided for BERT processing.")
+        logger.warning("Warning: Empty text batch provided for BERT processing.")
         return None
         
     try:
@@ -177,7 +177,7 @@ def process_batch_for_bert_classifier(batch, bert_tokenizer, device="cpu", max_l
         inputs = {k: v.to(device) for k, v in inputs.items()} # Move to device
         return inputs
     except Exception as e:
-        print(f"Error processing batch for BERT classifier: {e}")
+        logger.error(f"Error processing batch for BERT classifier: {e}")
         raise
 
 # --- LLaVA Functions (Revised for LLaVA 1.5) ---
@@ -233,10 +233,10 @@ def process_batch_for_llava(batch, processor, device, llava_prompt_template):
 #         tokenizer = AutoTokenizer.from_pretrained(model_name)
 #         # Or a BlipProcessor if available and suitable
 #         # processor = BlipProcessor.from_pretrained(model_name) 
-#         print(f"BLIP retrieval model '{model_name}' loaded.")
+#         logger.info(f"BLIP retrieval model '{model_name}' loaded.")
 #         return model, image_processor, tokenizer # or processor
 #     except Exception as e:
-#         print(f"Error loading BLIP retrieval model '{model_name}': {e}")
+#         logger.error(f"Error loading BLIP retrieval model '{model_name}': {e}")
 #         return None, None, None
 
 
@@ -245,10 +245,10 @@ if __name__ == '__main__':
     # This section is for basic testing of model_handler functions.
     # Assumes FakedditDataset is modified to provide PIL images when its `transform` is None.
 
-    print("--- Testing Model Handler Functions ---")
+    logger.info("--- Testing Model Handler Functions ---")
 
     # --- Test CLIP --- 
-    print("\n--- Testing CLIP Loading & Processing ---")
+    logger.info("\n--- Testing CLIP Loading & Processing ---")
     clip_model, clip_processor = load_clip()
     if clip_model and clip_processor:
         # Create a dummy batch similar to what FakedditDataset (with transform=None) would output
@@ -261,28 +261,28 @@ if __name__ == '__main__':
                 'text': ["A photo of a cat", "A photo of a dog"],
                 'label': [0, 1]
             }
-            print("Dummy batch for CLIP created.")
+            logger.info("Dummy batch for CLIP created.")
             clip_inputs = process_batch_for_clip(dummy_batch_clip, clip_processor)
-            print("CLIP inputs processed successfully:")
+            logger.info("CLIP inputs processed successfully:")
             for key, val in clip_inputs.items():
-                print(f"  {key}: shape {val.shape}")
+                logger.info(f"  {key}: shape {val.shape}")
             
             # Test forward pass with CLIP model (optional here, more for pipeline.py)
             # with torch.no_grad():
             #     outputs = clip_model(**clip_inputs)
-            #     print(f"CLIP image_embeds shape: {outputs.image_embeds.shape}")
-            #     print(f"CLIP text_embeds shape: {outputs.text_embeds.shape}")
-            #     print(f"CLIP logits_per_image shape: {outputs.logits_per_image.shape}")
+            #     logger.info(f"CLIP image_embeds shape: {outputs.image_embeds.shape}")
+            #     logger.info(f"CLIP text_embeds shape: {outputs.text_embeds.shape}")
+            #     logger.info(f"CLIP logits_per_image shape: {outputs.logits_per_image.shape}")
 
         except Exception as e:
-            print(f"Error in CLIP test section: {e}")
+            logger.error(f"Error in CLIP test section: {e}")
             import traceback
             traceback.print_exc()
     else:
-        print("CLIP model or processor failed to load.")
+        logger.error("CLIP model or processor failed to load.")
 
     # --- Test BLIP --- 
-    print("\n--- Testing BLIP Loading & Processing (Captioning Example) ---")
+    logger.info("\n--- Testing BLIP Loading & Processing (Captioning Example) ---")
     # Using a smaller BLIP model for faster download if testing for the first time
     blip_model, blip_processor = load_blip_conditional(model_name="Salesforce/blip-image-captioning-base") # or Salesforce/blip-vqa-base
     if blip_model and blip_processor:
@@ -294,11 +294,11 @@ if __name__ == '__main__':
                 'text': [None], # For captioning, text can be None or empty
                 'label': [0]
             }
-            print("Dummy batch for BLIP (captioning) created.")
+            logger.info("Dummy batch for BLIP (captioning) created.")
             blip_inputs_caption = process_batch_for_blip_conditional(dummy_batch_blip_caption, blip_processor, task="captioning")
-            print("BLIP (captioning) inputs processed successfully:")
+            logger.info("BLIP (captioning) inputs processed successfully:")
             for key, val in blip_inputs_caption.items():
-                print(f"  {key}: shape {val.shape}")
+                logger.info(f"  {key}: shape {val.shape}")
 
             # Test VQA-like processing for BLIP
             dummy_batch_blip_vqa = {
@@ -307,29 +307,29 @@ if __name__ == '__main__':
                 'text': ["What color is the image?"], # Question for VQA
                 'label': [0]
             }
-            print("\nDummy batch for BLIP (VQA-like) created.")
+            logger.info("\nDummy batch for BLIP (VQA-like) created.")
             blip_inputs_vqa = process_batch_for_blip_conditional(dummy_batch_blip_vqa, blip_processor, task="vqa", max_length=20)
-            print("BLIP (VQA-like) inputs processed successfully:")
+            logger.info("BLIP (VQA-like) inputs processed successfully:")
             for key, val in blip_inputs_vqa.items():
-                print(f"  {key}: shape {val.shape}")
+                logger.info(f"  {key}: shape {val.shape}")
             
             # Example of generating captions (optional here, more for pipeline.py)
             # if blip_inputs_caption:
-            #     print("\nGenerating caption with BLIP...")
+            #     logger.info("\nGenerating caption with BLIP...")
             #     with torch.no_grad():
             #         generated_ids = blip_model.generate(**blip_inputs_caption, max_length=20)
             #         generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
-            #         print(f"  Generated caption: {generated_text}")
+            #         logger.info(f"  Generated caption: {generated_text}")
 
         except Exception as e:
-            print(f"Error in BLIP test section: {e}")
+            logger.error(f"Error in BLIP test section: {e}")
             import traceback
             traceback.print_exc()
     else:
-        print("BLIP model or processor failed to load.")
+        logger.error("BLIP model or processor failed to load.")
 
     # --- Test BERT Classifier ---
-    print("\n--- Testing BERT Classifier Loading & Processing ---")
+    logger.info("\n--- Testing BERT Classifier Loading & Processing ---")
     bert_model, bert_tokenizer = load_bert_classifier(num_labels=2) # Assuming 2 labels for fake/real
     if bert_model and bert_tokenizer:
         dummy_batch_bert = {
@@ -337,22 +337,22 @@ if __name__ == '__main__':
             'text': ["This is a factual statement.", "This is a misleading statement."],
             # 'image' and 'label' fields are not strictly needed for this specific processing function test
         }
-        print("Dummy batch for BERT created.")
+        logger.info("Dummy batch for BERT created.")
         try:
             bert_inputs = process_batch_for_bert_classifier(dummy_batch_bert, bert_tokenizer)
-            print("BERT inputs processed successfully:")
+            logger.info("BERT inputs processed successfully:")
             for key, val in bert_inputs.items():
-                print(f"  {key}: shape {val.shape}")
+                logger.info(f"  {key}: shape {val.shape}")
             
             # Optional: Test forward pass (more for pipeline)
             # with torch.no_grad():
             #     outputs = bert_model(**bert_inputs)
-            #     print(f"BERT output logits shape: {outputs.logits.shape}")
+            #     logger.info(f"BERT output logits shape: {outputs.logits.shape}")
         except Exception as e:
-            print(f"Error in BERT test section: {e}")
+            logger.error(f"Error in BERT test section: {e}")
             import traceback
             traceback.print_exc()
     else:
-        print("BERT classifier model or tokenizer failed to load.")
+        logger.error("BERT classifier model or tokenizer failed to load.")
 
-    print("\nModel handler testing finished.")
+    logger.info("\nModel handler testing finished.")
