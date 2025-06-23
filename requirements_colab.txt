@@ -1,0 +1,29 @@
+# Colab-compatible requirements.txt
+# Avoids conflicts with pre-installed Colab packages
+
+# Core ML packages (compatible with Colab)
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+
+# Data science packages (compatible versions)
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+
+# Visualization (compatible with Colab matplotlib)
+seaborn>=0.12.0
+
+# RAG and search
+faiss-cpu>=1.7.4
+
+# Utilities
+tqdm>=4.65.0
+requests>=2.28.0
+Pillow>=9.5.0
+python-json-logger>=2.0.0
+
+# Optional: Use GPU version if available
+# faiss-gpu>=1.7.4  # Uncomment if GPU is available and needed 
