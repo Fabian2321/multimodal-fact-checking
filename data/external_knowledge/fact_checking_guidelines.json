@@ -1,0 +1,44 @@
+{
+    "guidelines": [
+        {
+            "text": "When fact-checking images, always verify if the image content matches the text description exactly. Look for any discrepancies or missing elements.",
+            "category": "image_verification",
+            "importance": "high"
+        },
+        {
+            "text": "Check if the text makes any claims that cannot be verified from the image alone. If additional context is needed, the text may be misleading.",
+            "category": "claim_verification",
+            "importance": "high"
+        },
+        {
+            "text": "Be aware of common manipulation techniques in images, such as photo editing, cropping, or misleading captions.",
+            "category": "manipulation_detection",
+            "importance": "high"
+        },
+        {
+            "text": "Consider the context and timing of the image. An image might be real but used in a misleading context.",
+            "category": "context_verification",
+            "importance": "medium"
+        },
+        {
+            "text": "Look for inconsistencies between the text and image, such as mismatched locations, time periods, or objects.",
+            "category": "consistency_check",
+            "importance": "high"
+        },
+        {
+            "text": "Verify if the text makes any implicit claims that are not supported by the image content.",
+            "category": "implicit_claims",
+            "importance": "medium"
+        },
+        {
+            "text": "Check if the text uses any misleading or ambiguous language that could be interpreted in multiple ways.",
+            "category": "language_analysis",
+            "importance": "medium"
+        },
+        {
+            "text": "Consider the source and credibility of both the image and text when making a fact-checking decision.",
+            "category": "source_verification",
+            "importance": "high"
+        }
+    ]
+} 

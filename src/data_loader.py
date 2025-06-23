@@ -24,19 +24,19 @@ class FakedditDataset(Dataset):
     """
     Custom PyTorch Dataset for Fakeddit.
     Provides image data (either as transformed tensors or raw PIL images) and raw text strings.
+    Now supports returning additional metadata fields for advanced fact-checking.
     """
     def __init__(self, metadata_dir, metadata_file_name, 
                  downloaded_image_dir="data/downloaded_fakeddit_images",
                  transform="default_tensor", # Options: "default_tensor", None (for PIL), or a custom callable
                  image_id_col='id',
                  text_col='clean_title', label_col='2_way_label', image_url_col='image_url',
-                 has_image_col='hasImage'):
+                 has_image_col='hasImage',
+                 extra_metadata_fields=None):
         """
         Args:
-            transform (str or callable, optional):
-                - "default_tensor": Applies DEFAULT_IMAGE_TRANSFORMS.
-                - None: Returns raw PIL.Image.Image objects.
-                - callable: A custom transform to be applied to the PIL image.
+            extra_metadata_fields (list of str, optional):
+                List of additional metadata columns to return in each sample (e.g., ['created_utc', 'domain', 'author', 'subreddit', 'title'])
         """
         self.metadata_dir = metadata_dir
         self.metadata_file_name = metadata_file_name
@@ -48,6 +48,7 @@ class FakedditDataset(Dataset):
         self.label_col = label_col
         self.image_url_col = image_url_col
         self.has_image_col = has_image_col
+        self.extra_metadata_fields = extra_metadata_fields or []
 
         metadata_path = os.path.join(self.metadata_dir, self.metadata_file_name)
         self.metadata = pd.DataFrame() # Initialize as empty DataFrame
@@ -205,6 +206,12 @@ class FakedditDataset(Dataset):
                 'text': text_content,
                 'label': numeric_label, 
             }
+            # Add extra metadata fields if present
+            for field in self.extra_metadata_fields:
+                if field in row:
+                    sample[field] = row[field]
+                else:
+                    sample[field] = None
 
         except KeyError as e:
             logger.error(f"KeyError: {e} for index {idx}. Check column names.")

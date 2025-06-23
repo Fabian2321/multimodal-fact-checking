@@ -104,6 +104,8 @@ def load_blip_conditional(model_name="Salesforce/blip-image-captioning-base"):
             logger.info(f"Detected standard BLIP model name: '{model_name}'. Loading with BlipForConditionalGeneration.")
             model = BlipForConditionalGeneration.from_pretrained(model_name)
             processor = BlipProcessor.from_pretrained(model_name)
+            # Fix for padding warning
+            processor.tokenizer.padding_side = "left"
             logger.info(f"BLIP model and processor '{model_name}' loaded successfully.")
         return model, processor
     except Exception as e:
@@ -202,26 +204,34 @@ def load_llava(model_name_or_path, **kwargs):
         logger.error(f"Error loading LLaVA 1.5 model {model_name_or_path}: {e}")
         return None, None
 
-def process_batch_for_llava(batch, processor, device, llava_prompt_template):
+def process_batch_for_llava(batch, processor, device, llava_prompt_template, few_shot_images=None):
     """
-    Prepares a batch for LLaVA model inference.
-    The llava_prompt_template should include '{text}' for the text caption.
-    The processor for LLaVA 1.5 typically handles the <image> token insertion internally or requires a specific format.
-    Example template: "USER: <image>\nGiven the image and the caption '{text}', is this post misleading? Why or why not?\nASSISTANT:"
-    This template structure with USER: <image>... ASSISTANT: is common for LLaVA.
+    Prepares a batch for LLaVA model inference, with optional few-shot capability.
     """
     texts = batch['text']
-    images = batch['image'] # List of PIL Images
+    batch_images = batch['image'] # List of PIL Images for the current batch
 
-    # Construct prompts. The <image> token is essential and its placement is dictated by the model's training.
-    # For llava-hf/llava-1.5-7b-hf, the prompt should typically start with "USER: <image>\n" followed by the question.
+    all_images_for_processor = []
+    if few_shot_images:
+        for img in batch_images:
+            all_images_for_processor.append(few_shot_images + [img])
+    else:
+        all_images_for_processor = [[img] for img in batch_images]
+
+    # Construct the final prompts for the batch
     prompts = [llava_prompt_template.format(text=t) for t in texts]
 
+    # --- Debug logging ---
+    logger.info(f"LLaVA batch: {len(prompts)} prompts, {len(all_images_for_processor)} image lists.")
+    for i, (p, imgs) in enumerate(zip(prompts, all_images_for_processor)):
+        logger.info(f"Prompt {i}: {p}")
+        logger.info(f"  Images in sublist: {len(imgs)}")
+
     try:
-        inputs = processor(text=prompts, images=images, return_tensors="pt", padding=True)
+        inputs = processor(text=prompts, images=all_images_for_processor, return_tensors="pt", padding=True)
         return inputs
     except Exception as e:
-        logger.error(f"Error processing batch for LLaVA: {e}")
+        logger.error(f"Error processing batch for LLaVA with few-shot logic: {e}")
         return None
 
 # --- Add other BLIP model types if needed (e.g., BlipForImageTextRetrieval) ---

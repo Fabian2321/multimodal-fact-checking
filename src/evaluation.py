@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import logging # Import logging
+import pandas as pd
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
@@ -72,6 +73,57 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path=None, title='Co
     else:
         plt.show()
 
+def compute_qualitative_stats(results_df, generated_text_col='generated_text'):
+    """
+    Compute qualitative statistics from generated text explanations.
+    Returns a dictionary with stats like answer counts and average explanation length.
+    """
+    if generated_text_col not in results_df.columns:
+        return {}
+    texts = results_df[generated_text_col].dropna().astype(str)
+    # Simple yes/no/maybe/other answer extraction (case-insensitive)
+    yes_count = sum('yes' in t.lower() for t in texts)
+    no_count = sum('no' in t.lower() for t in texts)
+    maybe_count = sum('maybe' in t.lower() for t in texts)
+    other_count = len(texts) - yes_count - no_count - maybe_count
+    avg_length = texts.apply(lambda x: len(x.split())).mean() if not texts.empty else 0
+    stats = {
+        'n_samples': len(texts),
+        'n_yes': yes_count,
+        'n_no': no_count,
+        'n_maybe': maybe_count,
+        'n_other': other_count,
+        'avg_explanation_length': avg_length
+    }
+    return stats
+
+def save_metrics_table(metrics_dict, qualitative_stats, save_dir, filename_prefix="metrics_summary"):
+    """
+    Save a summary table of metrics (quantitative + qualitative) as CSV and PNG.
+    """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import os
+    # Combine all metrics into a single dict
+    summary = {**metrics_dict, **qualitative_stats}
+    df = pd.DataFrame(list(summary.items()), columns=["Metric", "Value"])
+    os.makedirs(save_dir, exist_ok=True)
+    csv_path = os.path.join(save_dir, f"{filename_prefix}.csv")
+    png_path = os.path.join(save_dir, f"{filename_prefix}.png")
+    df.to_csv(csv_path, index=False)
+    # Render as PNG table
+    plt.figure(figsize=(6, 0.5 * len(df) + 1))
+    plt.axis('off')
+    tbl = plt.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='center')
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(12)
+    tbl.scale(1, 1.5)
+    plt.tight_layout()
+    plt.savefig(png_path, bbox_inches='tight')
+    plt.close()
+    logger.info(f"Metrics summary saved to {csv_path} and {png_path}")
+    return csv_path, png_path
+
 def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_col='predicted_labels', 
                            generated_text_col='generated_text', # New argument for generated text
                            report_path=None, figures_dir=None):
@@ -79,14 +131,7 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
     Main function to evaluate model outputs from a DataFrame.
     Calculates metrics, generates a confusion matrix, and optionally saves a report.
     Also includes generated text in the report if available.
-
-    Args:
-        results_df (pd.DataFrame): DataFrame containing true labels and predicted labels.
-        true_label_col (str): Column name for true labels.
-        pred_label_col (str): Column name for predicted labels.
-        generated_text_col (str): Column name for generated text/explanations (optional).
-        report_path (str, optional): Path to save the evaluation report (e.g., 'results/reports/clip_evaluation.txt').
-        figures_dir (str, optional): Directory to save figures like the confusion matrix (e.g., 'results/figures/').
+    Now also saves a summary table (CSV + PNG) of all metrics in figures_dir.
     """
     if results_df.empty:
         logger.warning("Results DataFrame is empty. Nothing to evaluate.")
@@ -94,13 +139,9 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
 
     y_true = results_df[true_label_col]
     y_pred = results_df[pred_label_col]
-    
-    # Assuming binary classification for Fakeddit (e.g., 0: Real, 1: Fake)
-    # Adapt class_names if your labels are different.
     class_names = ['Real', 'Fake'] 
-    
     logger.info("\n--- Overall Metrics ---")
-    metrics = calculate_metrics(y_true, y_pred, average='binary') # Or 'macro'/'weighted' for multi-class
+    metrics = calculate_metrics(y_true, y_pred, average='binary')
     for metric_name, value in metrics.items():
         logger.info(f"{metric_name.capitalize()}: {value:.4f}")
 
@@ -108,45 +149,41 @@ def evaluate_model_outputs(results_df, true_label_col='true_labels', pred_label_
         cm_save_path = os.path.join(figures_dir, "confusion_matrix.png")
     else:
         cm_save_path = None
-        
     logger.info("\n--- Confusion Matrix ---")
     plot_confusion_matrix(y_true, y_pred, class_names=class_names, save_path=cm_save_path)
+
+    # Compute qualitative stats if generated text is available
+    qualitative_stats = compute_qualitative_stats(results_df, generated_text_col)
+    # Save summary table (CSV + PNG)
+    if figures_dir:
+        save_metrics_table(metrics, qualitative_stats, figures_dir)
 
     if report_path:
         os.makedirs(os.path.dirname(report_path), exist_ok=True)
         with open(report_path, 'w') as f:
             f.write("Evaluation Report\n")
             f.write("====================\n")
-            # Overall metrics (macro average)
             macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro', zero_division=0)
             accuracy = accuracy_score(y_true, y_pred)
-            
             f.write(f"Overall Accuracy: {accuracy:.4f}\n")
             f.write(f"Macro Precision: {macro_precision:.4f}\n")
             f.write(f"Macro Recall: {macro_recall:.4f}\n")
             f.write(f"Macro F1-score: {macro_f1:.4f}\n")
             f.write("\n\n--- Classification Report (Per Class) ---\n")
-            
-            # Detailed classification report
             from sklearn.metrics import classification_report
             report_str = classification_report(y_true, y_pred, target_names=class_names, zero_division=0)
             f.write(report_str)
-            
             if generated_text_col in results_df.columns and results_df[generated_text_col].notna().any():
                 f.write("\n\n--- Sample Generated Texts/Explanations ---\n")
-                # Write a few examples of generated text, true labels, and predicted labels
                 sample_size = min(5, len(results_df))
                 for i in range(sample_size):
                     f.write(f"  Sample {i+1} (ID: {results_df.iloc[i].get('id', 'N/A')}:\n")
                     f.write(f"    True: {results_df.iloc[i][true_label_col]}, Predicted: {results_df.iloc[i][pred_label_col]}\n")
                     f.write(f"    Generated Text: {results_df.iloc[i][generated_text_col]}\n")
-            
             f.write("\n--- Placeholder for Advanced Explainability Metrics ---\n")
             f.write("Quality of generated explanations (human-annotated relevance): TODO\n")
             f.write("Visualization of attention weights or Grad-CAM heatmaps: TODO (qualitative analysis)\n")
-            # TODO: Add more details to the report, e.g., per-class metrics, sample misclassifications.
         logger.info(f"Evaluation report saved to {report_path}")
-        
     return metrics
 
 if __name__ == '__main__':
@@ -174,7 +211,6 @@ if __name__ == '__main__':
         print(f"Test confusion matrix saved to {cm_test_save_path}")
     
     # Example: DataFrame for evaluate_model_outputs
-    import pandas as pd
     results_data = {
         'id': [f'id_{i}' for i in range(len(y_true_binary))],
         'true_labels': y_true_binary,

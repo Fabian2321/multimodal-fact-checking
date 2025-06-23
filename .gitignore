@@ -71,16 +71,22 @@ coverage.xml
 # mkdocs documentation
 /site/
 
-# Data files - add specific data files or directories if they are large or shouldn't be versioned
-# For example:
-# data/raw/*.csv
-# data/downloaded_images/
-# data/downloaded_fakeddit_images/
-# data/models_backup/ # If you store large model files not handled by git-lfs
+# Data files - exclude large data directories
+data/downloaded_fakeddit_images/
+data/raw/
+data/processed/
+data/knowledge_base/
+data/optimization_results/
+data/test_queries.json
+
+# Results and outputs
+results/
+logs/
 
 # Model checkpoints (if large and not using LFS)
-# models/*.pth
-# models/*.bin
+models/*.pth
+models/*.bin
+models/*.safetensors
 
 # Logs
 *.log

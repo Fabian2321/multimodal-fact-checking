@@ -7,15 +7,17 @@ import pandas as pd # For storing results
 import json
 from PIL import Image
 
-from data_loader import FakedditDataset # Assuming it's in the same directory or PYTHONPATH is set
-from model_handler import (
+from src.data_loader import FakedditDataset # Fixed import
+from src.model_handler import (
     load_clip, process_batch_for_clip, 
     load_blip_conditional, process_batch_for_blip_conditional,
     load_bert_classifier, process_batch_for_bert_classifier,
     load_llava, process_batch_for_llava # Added LLaVA imports
 )
-from utils import setup_logger # Import the logger setup function
-from evaluation import evaluate_model_outputs # Import the evaluation function
+from src.utils import setup_logger # Import the logger setup function
+from src.evaluation import evaluate_model_outputs, compute_qualitative_stats, save_metrics_table # Import the evaluation function
+from src.prompts import BLIP_PROMPTS, LLAVA_PROMPTS, FEW_SHOT_EXAMPLES # Import the new prompts
+from src.rag_handler import RAGHandler, RAGConfig  # Import RAG components
 
 # Setup logger for this module
 logger = setup_logger(__name__) # Use __name__ for the logger name, or a custom one
@@ -56,6 +58,56 @@ def main(args):
     logger.info(f"Outputs for model type '{args.model_type}' (Experiment: {args.experiment_name or 'default'}) will be saved to: {args.output_dir}")
     os.makedirs(args.output_dir, exist_ok=True) # Ensure the specific directory exists
 
+    # --- Define extra metadata fields to use ---
+    extra_metadata_fields = ['created_utc', 'domain', 'author', 'subreddit', 'title', 'num_comments', 'score', 'upvote_ratio', 'linked_submission_id']
+
+    # --- Prepare Few-Shot Data (if applicable) ---
+    few_shot_images = []
+    few_shot_context = {}
+    if args.use_few_shot:
+        logger.info("--- Preparing Few-Shot Examples ---")
+        # Load images and assemble text for prompt formatting
+        for ex in FEW_SHOT_EXAMPLES:
+            try:
+                img = Image.open(ex["image_path"]).convert("RGB")
+                few_shot_images.append(img)
+                logger.info(f"Loaded few-shot image: {ex['image_path']}")
+            except FileNotFoundError:
+                logger.error(f"Few-shot image not found at {ex['image_path']}. Cannot proceed with few-shot.")
+                return
+        
+        # Prepare a dictionary for easy .format() replacement in prompts
+        real_ex = FEW_SHOT_EXAMPLES[0]
+        fake_ex = FEW_SHOT_EXAMPLES[1]
+        few_shot_context = {
+            "real_example_text": real_ex["text"],
+            "real_explanation_blip": real_ex["explanation_blip"],
+            "real_explanation_llava": real_ex["explanation_llava"],
+            "fake_example_text": fake_ex["text"],
+            "fake_explanation_blip": fake_ex["explanation_blip"],
+            "fake_explanation_llava": fake_ex["explanation_llava"],
+        }
+        logger.info("Few-shot examples prepared successfully.")
+
+    # --- Initialize RAG if enabled ---
+    rag_handler = None
+    if args.use_rag:
+        logger.info("Initializing RAG system")
+        rag_config = RAGConfig(
+            embedding_model=args.rag_embedding_model,
+            top_k=args.rag_top_k,
+            similarity_threshold=args.rag_similarity_threshold,
+            knowledge_base_path=args.rag_knowledge_base_path
+        )
+        rag_handler = RAGHandler(rag_config)
+        
+        # Add initial knowledge base documents if provided
+        if args.rag_initial_docs:
+            logger.info(f"Loading initial knowledge base documents from {args.rag_initial_docs}")
+            with open(args.rag_initial_docs, 'r') as f:
+                initial_docs = json.load(f)
+            rag_handler.add_documents(initial_docs)
+
     # --- 1. Load Data ---
     print("\n--- Loading Data ---")
     # Construct full paths based on project structure
@@ -73,7 +125,8 @@ def main(args):
         downloaded_image_dir=downloaded_image_dir,
         transform=None, # Crucial: Get PIL images
         text_col=args.text_column,
-        label_col=args.label_column
+        label_col=args.label_column,
+        extra_metadata_fields=extra_metadata_fields
     )
 
     if not dataset or len(dataset) == 0:
@@ -106,6 +159,12 @@ def main(args):
         "blip_model_name": args.blip_model_name if args.model_type == 'blip' else None,
         "bert_model_name": args.bert_model_name if args.model_type == 'bert' else None,
         "llava_model_name": args.llava_model_name if args.model_type == 'llava' else None,
+        "prompt_name": args.prompt_name if args.model_type in ['blip', 'llava'] else None, # Log the prompt name
+        "use_few_shot": args.use_few_shot,
+        "use_rag": args.use_rag,
+        "rag_embedding_model": args.rag_embedding_model if args.use_rag else None,
+        "rag_top_k": args.rag_top_k if args.use_rag else None,
+        "rag_similarity_threshold": args.rag_similarity_threshold if args.use_rag else None,
     }
 
     logger.info(f"Starting pipeline with config: {json.dumps(experiment_config, indent=2)}")
@@ -115,83 +174,150 @@ def main(args):
     #     logger.warning("LLaVA model is large. Forcing CPU for LLaVA to potentially avoid MPS memory/performance issues. This will be slower.")
     #     current_device = "cpu"
 
-    if args.model_type == 'clip':
+    if args.model_type == 'clip': # Clip branch
         model, processor = load_clip(args.clip_model_name)
         process_batch_fn = process_batch_for_clip
-    elif args.model_type == 'blip':
+    elif args.model_type == 'blip': # Blip branch
         model, processor = load_blip_conditional(args.blip_model_name)
-        # Define a wrapper for BLIP processing to match expected signature by main loop
+        
+        prompt_template = BLIP_PROMPTS.get(args.prompt_name)
+        if not prompt_template:
+            logger.error(f"Prompt name '{args.prompt_name}' not found in BLIP_PROMPTS. Exiting.")
+            return
+
+        # Remove global formatting for few-shot prompt (fs_yesno_justification)
+        if args.use_few_shot and args.prompt_name == 'fs_yesno_justification':
+            pass  # Do not format here; handled per-sample in batch wrapper
+        elif args.use_few_shot:
+            # Format the entire template with the few-shot examples first (for other few-shot prompts)
+            prompt_template = prompt_template.format(
+                real_example_text=few_shot_context["real_example_text"],
+                real_explanation_blip=few_shot_context["real_explanation_blip"],
+                fake_example_text=few_shot_context["fake_example_text"],
+                fake_explanation_blip=few_shot_context["fake_explanation_blip"]
+            )
+
         def blip_process_wrapper(batch, proc, dev):
-            pil_images = batch['image']
             original_texts = batch['text']
-            batch_size = len(original_texts)
-            
-            final_generated_texts = []
+            # Prepare metadata string for each sample
+            metadata_strings = []
+            for idx in range(len(batch['id'])):
+                meta_parts = []
+                for field in extra_metadata_fields:
+                    if field in batch and len(batch[field]) > idx:
+                        meta_parts.append(f"{field}: {batch[field][idx]}")
+                metadata_strings.append("; ".join(meta_parts))
 
-            # Step 1: Get Yes/No answer
-            yes_no_prompts = [f"Does the provided image perfectly and completely match the claim made in the text: '{t}'? Answer with only 'No.' if there is *any* mismatch, discrepancy, or missing element, however small. Otherwise, answer 'Yes.'." for t in original_texts]
-            inputs_step1 = proc(images=pil_images, text=yes_no_prompts, return_tensors="pt", padding=True, truncation=True)
-            inputs_step1 = {k: v.to(dev) for k, v in inputs_step1.items()}
-            
-            # Use a small number of max_new_tokens for the Yes/No answer
-            generated_ids_step1 = model.generate(**inputs_step1, max_new_tokens=20)
-            yes_no_answers_raw = proc.batch_decode(generated_ids_step1, skip_special_tokens=True)
-            
-            # Normalize and clean Yes/No answers
-            yes_no_answers = []
-            for ans_raw in yes_no_answers_raw:
-                ans_clean = ans_raw.strip().lower()
-                if ans_clean.startswith("yes"):
-                    yes_no_answers.append("Yes.")
-                elif ans_clean.startswith("no"):
-                    yes_no_answers.append("No.")
+            # --- Two-step approach: first yes/no, then justification ---
+            if args.prompt_name in ['zs_yesno_justification', 'fs_yesno_justification']:
+                # Step 1: Yes/No prediction
+                yesno_prompts = []
+                for i, text in enumerate(original_texts):
+                    if args.prompt_name == 'fs_yesno_justification':
+                        base_template = "Example 1:\nText: 'A dog sitting on a couch'\nMetadata: location: living room; time: day\nQuestion: Does the text match the image and metadata?\nAnswer: Yes.\n\nExample 2:\nText: 'A cat playing the piano'\nMetadata: location: concert hall; time: night\nQuestion: Does the text match the image and metadata?\nAnswer: No.\n\nNow, answer the following:\nText: {text}\nMetadata: {metadata}\nQuestion: Does the text match the image and metadata?\nAnswer (Yes or No):"
+                        yesno_prompt = base_template.format(text=text, metadata=metadata_strings[i])
+                    else:
+                        concise_template = "Text: {text}\nMetadata: {metadata}\nQuestion: Does the text match the image and metadata?\nAnswer (Yes or No):"
+                        yesno_prompt = concise_template.format(text=text, metadata=metadata_strings[i])
+                    yesno_prompts.append(yesno_prompt)
+                # Generate yes/no answers
+                inputs = proc(images=batch['image'], text=yesno_prompts, return_tensors="pt", padding=True, truncation=True)
+                inputs = {k: v.to(dev) for k, v in inputs.items()}
+                generated_ids = model.generate(**inputs, max_new_tokens=5)  # Short output for yes/no
+                yesno_answers = proc.batch_decode(generated_ids, skip_special_tokens=True)
+                # Step 2: Justification
+                justification_prompts = []
+                for i, text in enumerate(original_texts):
+                    answer = yesno_answers[i].strip().split(". ")[0]  # Get 'Yes' or 'No'
+                    if args.prompt_name == 'fs_yesno_justification':
+                        base_template = "Example 1:\nText: 'A dog sitting on a couch'\nMetadata: location: living room; time: day\nQuestion: Does the text match the image and metadata?\nAnswer: Yes. The image shows a dog on a couch in a living room during the day.\n\nExample 2:\nText: 'A cat playing the piano'\nMetadata: location: concert hall; time: night\nQuestion: Does the text match the image and metadata?\nAnswer: No. The image does not show a cat or a piano.\n\nNow, answer the following:\nText: {text}\nMetadata: {metadata}\nQuestion: Does the text match the image and metadata?\nAnswer: {answer}. Justification:"
+                        justification_prompt = base_template.format(text=text, metadata=metadata_strings[i], answer=answer)
+                    else:
+                        concise_template = "Text: {text}\nMetadata: {metadata}\nQuestion: Does the text match the image and metadata?\nAnswer: {answer}. Justification:"
+                        justification_prompt = concise_template.format(text=text, metadata=metadata_strings[i], answer=answer)
+                    justification_prompts.append(justification_prompt)
+                # Generate justifications
+                inputs = proc(images=batch['image'], text=justification_prompts, return_tensors="pt", padding=True, truncation=True)
+                inputs = {k: v.to(dev) for k, v in inputs.items()}
+                generated_ids = model.generate(**inputs, max_new_tokens=args.max_new_tokens_blip)
+                justifications = proc.batch_decode(generated_ids, skip_special_tokens=True)
+                # Combine yes/no and justification
+                generated_texts = [f"{yesno_answers[i].strip()}. {justifications[i].strip()}" for i in range(len(yesno_answers))]
+                return generated_texts, None
+            # --- End two-step approach ---
+
+            # Original logic for other prompts
+            if args.use_rag:
+                prompts = []
+                for i, text in enumerate(original_texts):
+                    rag_query = f"{text} | {metadata_strings[i]}" if metadata_strings[i] else text
+                    retrieved_docs = rag_handler.retrieve(rag_query)
+                    rag_prompt = rag_handler.format_rag_prompt(text, retrieved_docs)
+                    if args.prompt_name == 'zs_metadata_check':
+                        final_prompt = prompt_template.format(text=rag_prompt, metadata=metadata_strings[i])
+                    else:
+                        final_prompt = prompt_template.format(text=rag_prompt)
+                    prompts.append(final_prompt)
+            else:
+                if args.prompt_name == 'zs_metadata_check':
+                    prompts = [prompt_template.format(text=t, metadata=metadata_strings[i]) for i, t in enumerate(original_texts)]
                 else:
-                    logger.warning(f"Could not parse Yes/No answer: '{ans_raw}'. Defaulting to 'No.' for explanation prompt.")
-                    yes_no_answers.append("No.") # Default or handle as error
-
-            # Step 2: Get Explanation based on Yes/No answer
-            explanation_prompts = []
-            for i in range(batch_size):
-                text = original_texts[i]
-                answer = yes_no_answers[i]
-                if answer == "Yes.":
-                    explanation_prompts.append(f"The image seems to perfectly and completely match the text: '{text}'. Explain concisely what specific elements in the image confirm the text's main claims without ambiguity.")
-                else: # Covers "No." and defaults from parsing issues
-                    explanation_prompts.append(f"The image appears to have mismatches or missing elements compared to the text: '{text}'. Explain clearly and concisely what the *key* mismatches, discrepancies, or missing elements are.")
-
-            inputs_step2 = proc(images=pil_images, text=explanation_prompts, return_tensors="pt", padding=True, truncation=True)
-            inputs_step2 = {k: v.to(dev) for k, v in inputs_step2.items()}
-            
-            # Use args.max_new_tokens_blip for the explanation
-            generated_ids_step2 = model.generate(**inputs_step2, max_new_tokens=args.max_new_tokens_blip)
-            explanations = proc.batch_decode(generated_ids_step2, skip_special_tokens=True)
-
-            # Combine Yes/No answer with explanation
-            for i in range(batch_size):
-                combined_text = f"{yes_no_answers[i]} {explanations[i].strip()}"
-                final_generated_texts.append(combined_text)
-            
-            return final_generated_texts, None # scores are None for this BLIP setup
+                    prompts = [prompt_template.format(text=t) for t in original_texts]
+            if args.prompt_name not in ['zs_yesno_justification', 'fs_yesno_justification']:
+                inputs = proc(images=batch['image'], text=prompts, return_tensors="pt", padding=True, truncation=True)
+                inputs = {k: v.to(dev) for k, v in inputs.items()}
+                generated_ids = model.generate(**inputs, max_new_tokens=args.max_new_tokens_blip)
+                generated_texts = proc.batch_decode(generated_ids, skip_special_tokens=True)
+                return generated_texts, None
 
         process_batch_fn = blip_process_wrapper
-        logger.info(f"Using BLIP model: {args.blip_model_name} with two-step explanation-focused prompt.")
-    elif args.model_type == 'llava': # New LLaVA branch
+        logger.info(f"Using BLIP model: {args.blip_model_name} with prompt: '{args.prompt_name}' (Few-shot: {args.use_few_shot})")
+    elif args.model_type == 'llava': # LLaVA branch
         model, processor = load_llava(args.llava_model_name)
+        
+        prompt_template = LLAVA_PROMPTS.get(args.prompt_name)
+        if not prompt_template:
+            logger.error(f"Prompt name '{args.prompt_name}' not found in LLAVA_PROMPTS. Exiting.")
+            return
+
+        if args.use_few_shot:
+            prompt_template = prompt_template.format(**few_shot_context)
+
         def llava_process_wrapper(batch, proc, dev):
-            # The llava_prompt_template comes from args
-            inputs = process_batch_for_llava(batch, proc, dev, args.llava_prompt_template)
-            if inputs is None: # Error occurred in processing
-                return ["Error processing batch for LLaVA"] * len(batch['id']), None 
-            
-            # Ensure inputs are on the correct device (model.generate expects this)
+            # Prepare metadata string for each sample
+            metadata_strings = []
+            for idx in range(len(batch['id'])):
+                meta_parts = []
+                for field in extra_metadata_fields:
+                    if field in batch and len(batch[field]) > idx:
+                        meta_parts.append(f"{field}: {batch[field][idx]}")
+                metadata_strings.append("; ".join(meta_parts))
+            # Apply RAG if enabled
+            if args.use_rag:
+                rag_prompts = []
+                for i, text in enumerate(batch['text']):
+                    rag_query = f"{text} | {metadata_strings[i]}" if metadata_strings[i] else text
+                    retrieved_docs = rag_handler.retrieve(rag_query)
+                    rag_prompt = rag_handler.format_rag_prompt(text, retrieved_docs)
+                    if args.prompt_name == 'zs_metadata_check':
+                        final_prompt = prompt_template.format(text=rag_prompt, metadata=metadata_strings[i])
+                    else:
+                        final_prompt = prompt_template.format(text=rag_prompt)
+                    rag_prompts.append(final_prompt)
+                # Pass the prompt template string, not a list, to process_batch_for_llava
+                inputs = process_batch_for_llava(batch, proc, dev, prompt_template, few_shot_images if args.use_few_shot else None)
+            else:
+                # Pass the prompt template string, not a list, to process_batch_for_llava
+                inputs = process_batch_for_llava(batch, proc, dev, prompt_template, few_shot_images if args.use_few_shot else None)
+            if inputs is None:
+                return ["Error processing batch for LLaVA"] * len(batch['id']), None
             inputs = {k: v.to(dev) for k, v in inputs.items()}
-            
             generated_ids = model.generate(**inputs, max_new_tokens=args.max_new_tokens_llava)
             generated_texts = proc.batch_decode(generated_ids, skip_special_tokens=True)
             return generated_texts, None
 
         process_batch_fn = llava_process_wrapper
-        logger.info(f"Using LLaVA model: {args.llava_model_name} with prompt template: {args.llava_prompt_template}")
+        logger.info(f"Using LLaVA model: {args.llava_model_name} with prompt: '{args.prompt_name}' (Few-shot: {args.use_few_shot})")
     elif args.model_type == 'bert':
         model, processor = load_bert_classifier(args.bert_model_name, num_labels=args.num_labels) # processor is bert_tokenizer here
         process_batch_fn = process_batch_for_bert_classifier
@@ -303,6 +429,14 @@ def main(args):
                         result_entry['scores'] = score_item # This is the CLIP similarity score
                     if generated_text_item is not None:
                         result_entry['generated_text'] = generated_text_item
+                    # Add extra metadata fields if present in batch
+                    for field in extra_metadata_fields:
+                        if field in batch and len(batch[field]) > idx:
+                            result_entry[field] = batch[field][idx]
+                        elif hasattr(dataset, 'metadata') and field in dataset.metadata.columns:
+                            # fallback: get from dataset metadata
+                            val = dataset.metadata.loc[dataset.metadata['id'] == item_id, field]
+                            result_entry[field] = val.values[0] if not val.empty else None
                     
                     all_results.append(result_entry)
 
@@ -386,6 +520,7 @@ def main(args):
             report_path=evaluation_report_path,
             figures_dir=figures_dir
         )
+        # Metrics summary table is already saved by evaluate_model_outputs
     elif 'generated_text' in results_df.columns and (args.model_type == 'blip' or args.model_type == 'llava'):
         # For BLIP/LLaVA, even without derived predicted_labels, save a report with generated text
         logger.info(f"{args.model_type.upper()} run: Saving a report focusing on generated text as 'predicted_labels' are not derived.")
@@ -402,41 +537,53 @@ def main(args):
                 f.write(f"Generated Explanation: {row.get('generated_text', 'N/A')}\n")
                 f.write("-" * 30 + "\n")
         logger.info(f"{(args.blip_model_name if args.model_type == 'blip' else args.llava_model_name).replace('/', '_')}_explanations saved to {explanations_path}")
+        # Compute and save qualitative stats and summary table
+        qualitative_stats = compute_qualitative_stats(results_df, 'generated_text')
+        metrics = {}  # No quantitative metrics without predicted labels
+        save_metrics_table(metrics, qualitative_stats, figures_dir)
     else:
         logger.warning("Evaluation skipped: True labels or predicted labels column not found or not applicable.")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Multimodal Fact-Checking Pipeline")
+    parser = argparse.ArgumentParser(description="Run multimodal fact-checking pipeline.")
     
-    # Data Args
-    parser.add_argument("--data_dir", type=str, default="data", help="Directory for data, relative to project root.")
-    parser.add_argument("--metadata_file", type=str, default="multimodal_train.csv", help="Metadata CSV file name in data_dir/raw.")
-    parser.add_argument("--text_column", type=str, default="clean_title", help="Column name for text in metadata CSV.")
-    parser.add_argument("--label_column", type=str, default="2_way_label", help="Column name for labels in metadata CSV.")
-    parser.add_argument("--num_samples", type=int, default=-1, help="Number of samples to process. -1 for all.")
+    # --- General arguments ---
+    parser.add_argument('--data_dir', type=str, default='data', help='Directory for data, relative to project root.')
+    parser.add_argument('--metadata_file', type=str, default='train_correct_pairs.csv', help='Metadata CSV file name in data_dir/processed.')
+    parser.add_argument('--output_dir', type=str, default='results', help='Base directory to save experiment results.')
+    parser.add_argument('--experiment_name', type=str, default=None, help='A unique name for the experiment.')
+    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for processing.')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of workers for DataLoader.')
+    parser.add_argument('--num_samples', type=int, default=-1, help='Number of samples to process from the dataset. -1 for all.')
+    parser.add_argument('--model_type', type=str, choices=['clip', 'blip', 'bert', 'llava'], required=True, help='Type of model to use.')
+    parser.add_argument('--text_column', type=str, default='clean_title', help='Column name for text in the metadata file.')
+    parser.add_argument('--label_column', type=str, default='2_way_label', help='Column name for labels in the metadata file.')
+    
+    # --- Model-specific Arguments ---
+    parser.add_argument('--clip_model_name', type=str, default='openai/clip-vit-base-patch32', help='Name of the CLIP model to use.')
+    parser.add_argument('--blip_model_name', type=str, default='Salesforce/blip-image-captioning-large', help='Name of the BLIP model to use.')
+    parser.add_argument('--bert_model_name', type=str, default='bert-base-uncased', help='Name of the BERT model to use.')
+    parser.add_argument('--llava_model_name', type=str, default='llava-hf/llava-1.5-7b-hf', help='Name of the LLaVA model to use.')
+    parser.add_argument('--num_labels', type=int, default=2, help='Number of labels for BERT classification.')
 
-    # Model Args
-    parser.add_argument("--model_type", type=str, choices=['clip', 'blip', 'bert', 'llava'], required=True, help="Type of model to use.")
-    parser.add_argument("--clip_model_name", type=str, default="openai/clip-vit-base-patch32", help="CLIP model name from Hugging Face.")
-    parser.add_argument("--blip_model_name", type=str, default="Salesforce/blip-vqa-base", help="BLIP model name (e.g., Salesforce/blip-vqa-base, Salesforce/blip-image-captioning-base).")
-    parser.add_argument("--bert_model_name", type=str, default="bert-base-uncased", help="BERT model name for text classification.")
-    parser.add_argument("--llava_model_name", type=str, default="llava-hf/llava-1.5-7b-hf", help="LLaVA model name from Hugging Face.")
-    parser.add_argument("--num_labels", type=int, default=2, help="Number of labels for classification (e.g., 2 for fake/real).")
-    parser.add_argument("--blip_task", type=str, default="vqa", choices=["vqa", "captioning", "classification_prompted"], help="Task for BLIP model conditional processing.")
-    # parser.add_argument("--blip_max_text_length", type=int, default=32, help="Max text length for BLIP processor (old, might be deprecated by specific model processing).")
-    parser.add_argument("--llava_prompt_template", type=str, 
-                        default="USER: <image>\nGiven the image and the caption '{text}', is this post misleading? Why or why not?\nASSISTANT:", 
-                        help="Prompt template for LLaVA. Use '{text}' for caption and ensure '<image>' token is present for the processor.")
-    parser.add_argument("--max_new_tokens_blip", type=int, default=50, help="Max new tokens for BLIP processor for the explanation part in two-step.")
-    parser.add_argument("--max_new_tokens_llava", type=int, default=100, help="Max new tokens for LLaVA generation.")
+    # --- Prompting and Generation Arguments ---
+    parser.add_argument('--prompt_name', type=str, default='default', help='Name of the prompt from prompts.py to use for BLIP or LLaVA.')
+    parser.add_argument('--use_few_shot', action='store_true', help='If set, enables few-shot prompting using examples from prompts.py.')
+    parser.add_argument('--max_new_tokens_blip', type=int, default=75, help='Max new tokens for BLIP generation.')
+    parser.add_argument('--max_new_tokens_llava', type=int, default=100, help='Max new tokens for LLaVA generation.')
 
-    # DataLoader and Processing arguments
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for DataLoader.")
-    parser.add_argument("--num_workers", type=int, default=0, help="Number of workers for DataLoader.")
-
-    # Output Args
-    parser.add_argument("--output_dir", type=str, default="results", help="Base directory to save all outputs. Model-specific subfolders will be created here.")
-    parser.add_argument("--experiment_name", type=str, default=None, help="Optional name for the specific experiment run, creating a subfolder within results/<model_type>/")
+    # Add RAG-specific arguments
+    parser.add_argument("--use_rag", action="store_true", help="Enable RAG for enhanced fact-checking")
+    parser.add_argument("--rag_embedding_model", type=str, default="all-MiniLM-L6-v2",
+                      help="Sentence transformer model for RAG embeddings")
+    parser.add_argument("--rag_top_k", type=int, default=3,
+                      help="Number of documents to retrieve for RAG")
+    parser.add_argument("--rag_similarity_threshold", type=float, default=0.7,
+                      help="Minimum similarity score for RAG document retrieval")
+    parser.add_argument("--rag_knowledge_base_path", type=str, default="data/knowledge_base",
+                      help="Path to RAG knowledge base")
+    parser.add_argument("--rag_initial_docs", type=str,
+                      help="Path to initial knowledge base documents JSON file")
 
     args = parser.parse_args()
     main(args)
