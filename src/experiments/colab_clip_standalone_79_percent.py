@@ -1,6 +1,6 @@
-# --- Colab-kompatibles CLIP Standalone Script für 79% Accuracy Setup ---
-# Vor Ausführung: !pip install transformers torch pillow pandas scikit-learn matplotlib seaborn
-# Exakte Parameter aus dem erfolgreichen Ensemble-Experiment
+# --- Colab-compatible CLIP Standalone Script for 79% Accuracy Setup ---
+# Before execution: !pip install transformers torch pillow pandas scikit-learn matplotlib seaborn
+# Exact parameters from the successful ensemble experiment
 
 import os
 import glob
@@ -15,7 +15,7 @@ import seaborn as sns
 from typing import List, Dict, Any
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -26,7 +26,7 @@ def load_local_image(image_id: str) -> Image.Image:
 
 class CLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """Exakte CLIP-Konfiguration aus dem Ensemble-Experiment"""
+        """Exact CLIP configuration from the ensemble experiment"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -37,7 +37,7 @@ class CLIPHandler:
         print("CLIP model loaded successfully!")
 
     def predict_similarity(self, text: str, image: Image.Image) -> float:
-        """Exakte Similarity-Berechnung aus dem Ensemble-Experiment"""
+        """Exact similarity calculation from the ensemble experiment"""
         inputs = self.processor(
             text=[text], 
             images=image, 
@@ -54,7 +54,7 @@ class CLIPHandler:
         return similarity
 
     def find_optimal_threshold(self, similarities: list, true_labels: list) -> float:
-        """Exakte Schwellenwert-Optimierung aus dem Ensemble-Experiment"""
+        """Exact threshold optimization from the ensemble experiment"""
         from sklearn.metrics import roc_curve
         fpr, tpr, thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
@@ -70,9 +70,9 @@ class CLIPHandler:
         return optimal_threshold
 
 def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
-    """Berechnet alle wichtigen Metriken für die Dokumentation"""
+    """Calculates all important metrics for documentation"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -81,21 +81,21 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("CLIP STANDALONE EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("CLIP STANDALONE EXPERIMENT - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -103,7 +103,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     print(f"  - Samples: {len(y_true)}")
     print(f"  - Optimal Threshold: {threshold:.3f}")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -142,7 +142,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     }
 
 def plot_results(metrics):
-    """Erstellt Visualisierungen der Ergebnisse"""
+    """Creates visualizations of the results"""
     
     # Confusion Matrix Plot
     plt.figure(figsize=(15, 5))
@@ -186,11 +186,11 @@ def plot_results(metrics):
     plt.tight_layout()
     plt.show()
 
-# --- Hauptfunktion für Colab ---
+# --- Main function for Colab ---
 def main():
-    """Hauptfunktion mit exakten Parametern aus dem Ensemble-Experiment"""
+    """Main function with exact parameters from the ensemble experiment"""
     
-    # Exakte Parameter aus dem erfolgreichen Experiment
+    # Exact parameters from the successful experiment
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_standalone_79_percent_results.csv"
@@ -198,26 +198,26 @@ def main():
     print("CLIP Standalone Experiment - 79% Accuracy Setup")
     print("="*50)
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
-        print("Bitte test_balanced_pairs_clean.csv hochladen!")
+        print("Please upload test_balanced_pairs_clean.csv!")
         return
     
     if not os.path.exists("colab_images"):
         print("❌ colab_images folder not found!")
-        print("Bitte colab_images.zip entpacken: !unzip -o colab_images.zip -d colab_images")
+        print("Please unzip colab_images.zip: !unzip -o colab_images.zip -d colab_images")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # CLIP initialisieren
+    # Initialize CLIP
     clip = CLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     similarities = []
     true_labels = []
@@ -242,25 +242,25 @@ def main():
             'clip_similarity': sim,
         })
     
-    # Optimalen Schwellenwert bestimmen
+    # Find optimal threshold
     print(f"\n🎯 Finding optimal threshold...")
     threshold = clip.find_optimal_threshold(similarities, true_labels)
     
-    # Predictions setzen
+    # Set predictions
     predictions = [int(sim >= threshold) for sim in similarities]
     
     for r in results:
         r['clip_predicted_label'] = int(r['clip_similarity'] >= threshold)
     
-    # Vollständige Metriken berechnen
+    # Calculate comprehensive metrics
     metrics = calculate_comprehensive_metrics(true_labels, predictions, similarities, threshold)
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken auch als JSON speichern
+    # Save metrics also as JSON
     import json
     metrics_file = "clip_standalone_79_percent_metrics.json"
     metrics_dict = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v 
@@ -270,7 +270,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating visualizations...")
     plot_results(metrics)
     
@@ -283,6 +283,6 @@ def main():
     print(f"  - Samples: {len(df)}")
     print(f"  - Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
 
-# In Colab einfach main() aufrufen
+# Simply call main() in Colab
 if __name__ == "__main__":
     main() 

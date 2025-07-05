@@ -1,5 +1,5 @@
-# --- Aggressives CLIP Script für 85%+ Accuracy ---
-# Erweiterte Optimierungen: 5-Crop, Advanced Text Processing, Ensemble Strategies
+# --- Aggressive CLIP Script for 85%+ Accuracy ---
+# Extended optimizations: 5-Crop, Advanced Text Processing, Ensemble Strategies
 
 import os
 import glob
@@ -29,7 +29,7 @@ except LookupError:
     nltk.download('wordnet')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -39,40 +39,40 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def advanced_text_preprocessing(text: str) -> List[str]:
-    """Erweiterte Text-Preprocessing mit mehreren Varianten"""
-    # Basis-Cleaning
+    """Advanced text preprocessing with multiple variants"""
+    # Basic cleaning
     text = text.lower().strip()
     
-    # Entferne URLs
+    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     
-    # Entferne spezielle Zeichen, behalte wichtige
+    # Remove special characters, keep important ones
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Lemmatisierung
+    # Lemmatization
     lemmatizer = WordNetLemmatizer()
     
-    # Stop-Wörter entfernen (selektiv)
+    # Remove stopwords (selectively)
     stop_words = set(stopwords.words('english'))
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video', 'man', 'woman', 'person', 'people'}
     
-    # Variante 1: Vollständig verarbeitet
+    # Variant 1: Fully processed
     words = text.split()
     filtered_words = [lemmatizer.lemmatize(word) for word in words if word not in stop_words or word in important_words]
     variant1 = ' '.join(filtered_words) if len(filtered_words) >= 2 else ' '.join(words[:3])
     
-    # Variante 2: Nur wichtige Wörter
+    # Variant 2: Only important words
     important_only = [word for word in words if word in important_words or len(word) > 4]
     variant2 = ' '.join(important_only) if important_only else variant1
     
-    # Variante 3: Original mit minimaler Verarbeitung
+    # Variant 3: Original with minimal processing
     variant3 = ' '.join([lemmatizer.lemmatize(word) for word in words])
     
     return [variant1, variant2, variant3]
 
 def create_advanced_image_crops(image: Image.Image, num_crops: int = 5) -> List[Image.Image]:
-    """Erstellt erweiterte Bildausschnitte für maximale Robustheit"""
-    crops = [image]  # Original immer dabei
+    """Creates advanced image crops for maximum robustness"""
+    crops = [image]  # Original always included
     
     if num_crops > 1:
         width, height = image.size
@@ -104,15 +104,15 @@ def create_advanced_image_crops(image: Image.Image, num_crops: int = 5) -> List[
     return crops[:num_crops]
 
 def apply_image_augmentation(image: Image.Image) -> Image.Image:
-    """Einfache Bild-Augmentation für Robustheit"""
-    # Konvertiere zu numpy für OpenCV
+    """Simple image augmentation for robustness"""
+    # Convert to numpy for OpenCV
     img_array = np.array(image)
     
-    # Leichte Helligkeitsanpassung
+    # Slight brightness adjustment
     brightness_factor = np.random.uniform(0.9, 1.1)
     img_array = np.clip(img_array * brightness_factor, 0, 255).astype(np.uint8)
     
-    # Leichte Kontrastanpassung
+    # Slight contrast adjustment
     contrast_factor = np.random.uniform(0.95, 1.05)
     img_array = np.clip(((img_array - 128) * contrast_factor) + 128, 0, 255).astype(np.uint8)
     
@@ -120,7 +120,7 @@ def apply_image_augmentation(image: Image.Image) -> Image.Image:
 
 class AggressiveCLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """Aggressive CLIP-Konfiguration für 85%+"""
+        """Aggressive CLIP configuration for 85%+"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -131,19 +131,19 @@ class AggressiveCLIPHandler:
         print("CLIP model loaded successfully!")
 
     def predict_similarity_aggressive(self, text: str, image: Image.Image, num_crops: int = 5) -> float:
-        """Aggressive Similarity-Berechnung mit Multi-Varianten"""
-        # Erweiterte Text-Varianten
+        """Aggressive similarity calculation with multi-variants"""
+        # Advanced text variants
         text_variants = advanced_text_preprocessing(text)
         
-        # Erweiterte Bild-Crops
+        # Advanced image crops
         crops = create_advanced_image_crops(image, num_crops)
         
         all_similarities = []
         
-        # Für jede Text-Variante und jeden Crop
+        # For each text variant and each crop
         for text_variant in text_variants:
             for crop in crops:
-                # Leichte Augmentation
+                # Light augmentation
                 augmented_crop = apply_image_augmentation(crop)
                 
                 inputs = self.processor(
@@ -160,12 +160,12 @@ class AggressiveCLIPHandler:
                     similarity = (image_embeds @ text_embeds.T).cpu().item()
                     all_similarities.append(similarity)
         
-        # Aggressive Aggregation: Top-K + Weighted Mean
+        # Aggressive aggregation: Top-K + Weighted Mean
         all_similarities.sort(reverse=True)
         top_k = min(5, len(all_similarities))
         top_similarities = all_similarities[:top_k]
         
-        # Gewichtete Kombination: Top-3 stärker gewichtet
+        # Weighted combination: Top-3 more heavily weighted
         if len(top_similarities) >= 3:
             weighted_sim = (0.5 * top_similarities[0] + 
                           0.3 * top_similarities[1] + 
@@ -176,22 +176,22 @@ class AggressiveCLIPHandler:
         return weighted_sim
 
     def find_optimal_threshold_aggressive(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Aggressive Schwellenwert-Optimierung mit mehreren Strategien"""
+        """Aggressive threshold optimization with multiple strategies"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -204,14 +204,14 @@ class AggressiveCLIPHandler:
         best_ba_idx = np.argmax(balanced_accuracies)
         ba_threshold = roc_thresholds[best_ba_idx]
         
-        # Custom Optimierung: Fokus auf Recall (weniger False Negatives)
+        # Custom optimization: Focus on Recall (fewer False Negatives)
         custom_scores = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
             tn, fp, fn, tp = confusion_matrix(true_labels, predictions).ravel()
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-            # Gewichtete Kombination mit Fokus auf Recall
+            # Weighted combination with focus on Recall
             custom_score = 0.6 * recall + 0.4 * precision
             custom_scores.append(custom_score)
         
@@ -236,9 +236,9 @@ class AggressiveCLIPHandler:
         }
 
 def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
-    """Berechnet alle wichtigen Metriken für die Dokumentation"""
+    """Calculates all important metrics for documentation"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -247,22 +247,22 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("AGGRESSIVE CLIP EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("AGGRESSIVE CLIP EXPERIMENT - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -271,7 +271,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: 5-Crop, Advanced Text Processing, Augmentation")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -313,13 +313,13 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     }
 
 def main():
-    """Hauptfunktion mit aggressiven Optimierungen für 85%+ Accuracy"""
+    """Main function with aggressive optimizations for 85%+ Accuracy"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_aggressive_85_percent_results.csv"
-    NUM_CROPS = 5  # Erweiterte Multi-crop
+    NUM_CROPS = 5  # Advanced multi-crop
     
     print("Aggressive CLIP Experiment - 85%+ Accuracy Target")
     print("="*55)
@@ -330,7 +330,7 @@ def main():
     print(f"  - Aggressive similarity aggregation: Top-K weighted")
     print(f"  - Custom threshold optimization: Recall-focused")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -339,15 +339,15 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # CLIP initialisieren
+    # Initialize CLIP
     clip = AggressiveCLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     similarities = []
     true_labels = []
@@ -372,11 +372,11 @@ def main():
             'clip_similarity': sim,
         })
     
-    # Aggressive Schwellenwert-Optimierung
+    # Aggressive threshold optimization
     print(f"\n🎯 Finding optimal threshold with aggressive strategies...")
     threshold_analysis = clip.find_optimal_threshold_aggressive(similarities, true_labels)
     
-    # Verschiedene Thresholds testen
+    # Test different thresholds
     thresholds_to_test = [
         ('roc_threshold', threshold_analysis['roc_threshold']),
         ('pr_threshold', threshold_analysis['pr_threshold']),
@@ -404,19 +404,19 @@ def main():
     print(f"\n🏆 Best threshold: {best_threshold_name} = {best_threshold:.3f}")
     print(f"🎯 Best accuracy: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Finale Predictions setzen
+    # Final predictions set
     for r in results:
         r['clip_predicted_label'] = int(r['clip_similarity'] >= best_threshold)
     
-    # Vollständige Metriken berechnen
+    # Calculate comprehensive metrics
     metrics = calculate_comprehensive_metrics(true_labels, best_predictions, similarities, best_threshold)
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "clip_aggressive_85_percent_metrics.json"
     metrics_dict = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v 

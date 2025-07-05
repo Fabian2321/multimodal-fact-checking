@@ -1,5 +1,5 @@
-# --- Colab-kompatibles LLaVA+CLIP Ensemble Skript ---
-# Vor Ausführung: !pip install transformers torch pillow pandas scikit-learn
+# --- Colab-compatible LLaVA+CLIP Ensemble Script ---
+# Before execution: !pip install transformers torch pillow pandas scikit-learn
 import os
 import glob
 import json
@@ -119,16 +119,16 @@ class CLIPHandler:
         best_idx = np.argmax(j_scores)
         return thresholds[best_idx]
 
-# --- Hauptfunktion für Colab ---
+# --- Main function for Colab ---
 def main():
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "llava_clip_ensemble_results.csv"
     if not os.path.exists(CSV_FILE):
-        print(f"CSV file {CSV_FILE} not found. Bitte hochladen!")
+        print(f"CSV file {CSV_FILE} not found. Please upload!")
         return
     if not os.path.exists("colab_images"):
-        print("colab_images folder not found. Bitte colab_images.zip entpacken!")
+        print("colab_images folder not found. Please unzip colab_images.zip!")
         print("Run this command in Colab: !unzip -o colab_images.zip -d colab_images")
         return
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
@@ -158,13 +158,13 @@ def main():
             'llava_parsing_explanation': llava_result['parsing_explanation'],
             'clip_similarity': sim,
         })
-    # Schwellenwert für CLIP bestimmen
+    # Determine threshold for CLIP
     threshold = clip.find_optimal_threshold(similarities, true_labels)
-    print(f"Optimaler CLIP-Schwellenwert: {threshold:.3f}")
-    # CLIP-Predictions setzen
+    print(f"Optimal CLIP threshold: {threshold:.3f}")
+    # Set CLIP predictions
     for r in results:
         r['clip_predicted_label'] = int(r['clip_similarity'] >= threshold)
-    # Ensemble-Logik
+    # Ensemble logic
     for r in results:
         r['ensemble_and'] = int(r['llava_predicted_label'] == 1 and r['clip_predicted_label'] == 1)
         r['ensemble_or'] = int(r['llava_predicted_label'] == 1 or r['clip_predicted_label'] == 1)
@@ -175,7 +175,7 @@ def main():
         valid = results_df[key] != -1
         acc = (results_df.loc[valid, key] == results_df.loc[valid, 'true_label']).mean()
         print(f"{key}: Accuracy = {acc:.3f}")
-    print("\nEnsemble-Experiment abgeschlossen. Siehe Output-Datei für Details.")
+    print("\nEnsemble experiment completed. See output file for details.")
 
-# In Colab einfach main() aufrufen
+# Simply call main() in Colab
 main() 

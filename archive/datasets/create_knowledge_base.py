@@ -96,7 +96,7 @@ def main():
     documents = create_initial_knowledge_base()
     
     # Save to data directory
-    output_path = "../data/knowledge_base/initial_docs.json"
+    output_path = "data/knowledge_base/initial_docs.json"
     save_knowledge_base(documents, output_path)
     
     # Print summary

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Results-Ordner Analyse
-Detaillierte Analyse vor der Aufräumung
+Results folder analysis
+Detailed analysis before cleanup
 """
 
 import os
@@ -13,17 +13,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def analyze_results_structure(results_dir="results"):
-    """Detaillierte Analyse der Results-Struktur"""
+    """Detailed analysis of the results structure"""
     
     results_path = Path(results_dir)
     if not results_path.exists():
-        print(f"❌ Results-Ordner {results_dir} nicht gefunden!")
+        print(f"❌ Results folder {results_dir} not found!")
         return
     
-    print("🔍 Analysiere Results-Ordner...")
+    print("🔍 Analyzing results folder...")
     print("=" * 50)
     
-    # Sammle Statistiken
+    # Collect statistics
     stats = {
         'total_files': 0,
         'total_dirs': 0,
@@ -35,7 +35,7 @@ def analyze_results_structure(results_dir="results"):
         'duplicate_names': defaultdict(list)
     }
     
-    # Durchlaufe alle Dateien
+    # Walk through all files
     for root, dirs, files in os.walk(results_path):
         stats['total_dirs'] += len(dirs)
         stats['total_files'] += len(files)
@@ -46,85 +46,85 @@ def analyze_results_structure(results_dir="results"):
                 size_mb = file_path.stat().st_size / (1024 * 1024)
                 stats['size_mb'] += size_mb
                 
-                # Dateityp
+                # File type
                 ext = file_path.suffix.lower()
                 stats['file_types'][ext] += 1
                 
-                # Große Dateien (>1MB)
+                # Large files (>1MB)
                 if size_mb > 1:
                     stats['large_files'].append({
                         'path': str(file_path),
                         'size_mb': size_mb
                     })
                 
-                # Wichtige Dateien
+                # Important files
                 if any(keyword in file.lower() for keyword in ['metrics', 'comparison', 'final', 'best', 'summary']):
                     stats['important_files'].append(str(file_path))
                 
-                # Duplikate nach Namen
+                # Duplicates by name
                 stats['duplicate_names'][file].append(str(file_path))
     
-    # Modell-Ordner identifizieren
+    # Identify model folders
     for item in results_path.iterdir():
         if item.is_dir() and not item.name.startswith('.'):
             stats['model_dirs'].append(item.name)
     
-    # Ausgabe
-    print(f"📊 Gesamtstatistiken:")
-    print(f"   Dateien: {stats['total_files']}")
-    print(f"   Ordner: {stats['total_dirs']}")
-    print(f"   Größe: {stats['size_mb']:.2f} MB")
+    # Output
+    print(f"📊 Overall statistics:")
+    print(f"   Files: {stats['total_files']}")
+    print(f"   Folders: {stats['total_dirs']}")
+    print(f"   Size: {stats['size_mb']:.2f} MB")
     print()
     
-    print(f"📁 Modell-Ordner ({len(stats['model_dirs'])}):")
+    print(f"📁 Model folders ({len(stats['model_dirs'])}):")
     for dir_name in sorted(stats['model_dirs']):
         print(f"   - {dir_name}")
     print()
     
-    print(f"📄 Dateitypen:")
+    print(f"📄 File types:")
     for ext, count in sorted(stats['file_types'].items(), key=lambda x: x[1], reverse=True):
         print(f"   {ext}: {count}")
     print()
     
-    print(f"⭐ Wichtige Dateien ({len(stats['important_files'])}):")
+    print(f"⭐ Important files ({len(stats['important_files'])}):")
     for file_path in sorted(stats['important_files']):
         rel_path = Path(file_path).relative_to(results_path)
         print(f"   - {rel_path}")
     print()
     
-    print(f"💾 Große Dateien (>1MB):")
+    print(f"💾 Large files (>1MB):")
     for file_info in sorted(stats['large_files'], key=lambda x: x['size_mb'], reverse=True):
         rel_path = Path(file_info['path']).relative_to(results_path)
         print(f"   - {rel_path} ({file_info['size_mb']:.2f} MB)")
     print()
     
-    # Duplikate finden
+    # Find duplicates
     duplicates = {name: paths for name, paths in stats['duplicate_names'].items() if len(paths) > 1}
     if duplicates:
-        print(f"⚠️  Potentielle Duplikate:")
-        for name, paths in list(duplicates.items())[:10]:  # Zeige nur die ersten 10
+        print(f"⚠️  Potential duplicates:")
+        for name, paths in list(duplicates.items())[:10]:  # Show only the first 10
             print(f"   {name}:")
             for path in paths:
                 rel_path = Path(path).relative_to(results_path)
                 print(f"     - {rel_path}")
         print()
     
-    # Speichere detaillierte Analyse
+    # Save detailed analysis
     analysis_file = results_path / 'detailed_analysis.json'
     with open(analysis_file, 'w') as f:
         json.dump(stats, f, indent=2, default=str)
     
-    print(f"📋 Detaillierte Analyse gespeichert: {analysis_file}")
+    print(f"📋 Detailed analysis saved: {analysis_file}")
     
     return stats
 
 def analyze_metrics_files(results_dir="results"):
-    """Analysiere alle Metriken-Dateien"""
+    """Analyze all metrics files"""
     
     results_path = Path(results_dir)
     metrics_files = []
     
-    # Finde alle CSV-Dateien
+    # Find all CSV files
     for csv_file in results_path.rglob("*.csv"):
         try:
             df = pd.read_csv(csv_file)
@@ -135,65 +135,65 @@ def analyze_metrics_files(results_dir="results"):
                 'size_mb': csv_file.stat().st_size / (1024 * 1024)
             })
         except Exception as e:
-            print(f"⚠️  Konnte {csv_file} nicht lesen: {e}")
+            print(f"⚠️  Could not read {csv_file}: {e}")
     
-    print(f"📈 Metriken-Dateien gefunden: {len(metrics_files)}")
+    print(f"📈 Metrics files found: {len(metrics_files)}")
     print()
     
     for file_info in sorted(metrics_files, key=lambda x: x['size_mb'], reverse=True):
         rel_path = Path(file_info['path']).relative_to(results_path)
         print(f"📊 {rel_path}")
-        print(f"   Größe: {file_info['size_mb']:.2f} MB")
-        print(f"   Zeilen: {file_info['rows']}")
-        print(f"   Spalten: {file_info['columns']}")
+        print(f"   Size: {file_info['size_mb']:.2f} MB")
+        print(f"   Rows: {file_info['rows']}")
+        print(f"   Columns: {file_info['columns']}")
         print()
     
     return metrics_files
 
 def generate_cleanup_recommendations(stats):
-    """Generiere Aufräum-Empfehlungen"""
+    """Generate cleanup recommendations"""
     
-    print("🎯 Aufräum-Empfehlungen:")
+    print("🎯 Cleanup recommendations:")
     print("=" * 50)
     
-    # Empfehlungen basierend auf Analyse
+    # Recommendations based on analysis
     recommendations = []
     
-    # Test-Ordner
+    # Test folders
     test_dirs = [d for d in stats['model_dirs'] if 'test' in d.lower()]
     if test_dirs:
-        recommendations.append(f"📁 {len(test_dirs)} Test-Ordner ins Archive verschieben: {', '.join(test_dirs)}")
+        recommendations.append(f"📁 Move {len(test_dirs)} test folders to archive: {', '.join(test_dirs)}")
     
-    # Große Dateien
+    # Large files
     large_files = [f for f in stats['large_files'] if f['size_mb'] > 5]
     if large_files:
-        recommendations.append(f"💾 {len(large_files)} sehr große Dateien (>5MB) prüfen")
+        recommendations.append(f"💾 Check {len(large_files)} very large files (>5MB)")
     
-    # Duplikate
+    # Duplicates
     duplicates = {name: paths for name, paths in stats['duplicate_names'].items() if len(paths) > 1}
     if duplicates:
-        recommendations.append(f"⚠️  {len(duplicates)} Dateien mit identischen Namen - Duplikate prüfen")
+        recommendations.append(f"⚠️  {len(duplicates)} files with identical names - check for duplicates")
     
-    # Wichtige Dateien bewahren
+    # Preserve important files
     if stats['important_files']:
-        recommendations.append(f"⭐ {len(stats['important_files'])} wichtige Dateien im final_results Ordner bewahren")
+        recommendations.append(f"⭐ Preserve {len(stats['important_files'])} important files in the final_results folder")
     
-    # Neue Struktur
-    recommendations.append("📂 Neue Struktur erstellen: final_results/, experiments/, archive/, analysis/")
+    # New structure
+    recommendations.append("📂 Create new structure: final_results/, experiments/, archive/, analysis/")
     
     for rec in recommendations:
         print(f"   {rec}")
     
     print()
-    print("✅ Empfehlung: Verwende das cleanup_results.py Skript mit --dry-run zuerst!")
+    print("✅ Recommendation: Use the cleanup_results.py script with --dry-run first!")
 
 def main():
-    """Hauptfunktion"""
+    """Main function"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Results-Ordner analysieren')
-    parser.add_argument('--results-dir', default='results', help='Pfad zum results-Ordner')
-    parser.add_argument('--metrics-only', action='store_true', help='Nur Metriken-Dateien analysieren')
+    parser = argparse.ArgumentParser(description='Analyze results folder')
+    parser.add_argument('--results-dir', default='results', help='Path to results folder')
+    parser.add_argument('--metrics-only', action='store_true', help='Analyze only metrics files')
     
     args = parser.parse_args()
     
@@ -204,7 +204,7 @@ def main():
         analyze_metrics_files(args.results_dir)
         generate_cleanup_recommendations(stats)
     
-    print("🎉 Analyse abgeschlossen!")
+    print("🎉 Analysis complete!")
 
 if __name__ == "__main__":
     main() 

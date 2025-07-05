@@ -79,7 +79,7 @@ def test_llava_mini():
     
     print(f"✅ Dataset loaded with {len(dataset)} total samples")
     
-    # Automatisch 3 gültige Beispiele wählen: ID im Dataset & Bilddatei vorhanden, >10KB, und mit PIL ladbar
+    # Automatically choose 3 valid examples: ID in dataset & image file exists, >10KB, and loadable with PIL
     img_dir = os.path.join(project_root, 'data', 'downloaded_fakeddit_images')
     available_ids = []
     for fname in os.listdir(img_dir):
@@ -90,24 +90,24 @@ def test_llava_mini():
             continue
         try:
             with Image.open(path) as im:
-                im.verify()  # prüft, ob Bild wirklich lesbar ist
+                im.verify()  # checks if image is really readable
             available_ids.append(fname[:-4])
         except Exception as e:
-            print(f"❌ Bild {fname} ist korrupt oder kein echtes Bild: {e}")
+            print(f"❌ Image {fname} is corrupted or not a real image: {e}")
     test_samples = []
     for sample in dataset:
         if sample['id'] in available_ids:
             test_samples.append(sample)
         if len(test_samples) == 3:
             break
-    print(f"✅ Automatisch 3 PIL-lesbare Samples gewählt: {[s['id'] for s in test_samples]}")
+    print(f"✅ Automatically chose 3 PIL-readable samples: {[s['id'] for s in test_samples]}")
     
     # 3. Get prompt template
     print("\n3. Setting up prompt...")
-    # Verwende den LLaVA Metadata Prompt für bessere Klarheit
+    # Use the LLaVA Metadata Prompt for better clarity
     prompt_template = LLAVA_PROMPTS.get(config['prompt_name'])
     if not prompt_template:
-        print(f"❌ Prompt '{config['prompt_name']}' nicht gefunden!")
+        print(f"❌ Prompt '{config['prompt_name']}' not found!")
         return False
     print(f"✅ Using LLaVA metadata prompt: {config['prompt_name']}")
     print(f"   Template: {prompt_template}")
@@ -135,25 +135,25 @@ def test_llava_mini():
                 'subreddit': [sample.get('subreddit', 'N/A')]
             }
             
-            # Bildgröße und Modus prüfen und ggf. anpassen (224x224, RGB)
+            # Check image size and mode and adjust if necessary (224x224, RGB)
             for idx in range(len(batch['image'])):
                 img = batch['image'][idx]
-                print(f"      Bild-Typ: {type(img)}")
-                # Resize falls nötig
+                print(f"      Image type: {type(img)}")
+                # Resize if necessary
                 if hasattr(img, 'size') and img.size != (224, 224):
                     img = img.resize((224, 224), Image.BICUBIC)
-                    print(f"      Bild wurde auf 224x224 resized.")
-                # Modus prüfen und ggf. konvertieren
+                    print(f"      Image was resized to 224x224.")
+                # Check mode and convert if necessary
                 if hasattr(img, 'mode'):
-                    print(f"      Bild-Modus: {img.mode}")
+                    print(f"      Image mode: {img.mode}")
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
-                        print(f"      Bild wurde zu RGB konvertiert.")
+                        print(f"      Image was converted to RGB.")
                 else:
-                    print(f"      Bild hat kein mode-Attribut")
+                    print(f"      Image has no mode attribute")
                 batch['image'][idx] = img
-                print(f"      Bild-Größe nach Anpassung: {img.size}")
-            # Process with LLaVA (Bilder als einfache Liste übergeben)
+                print(f"      Image size after adjustment: {img.size}")
+            # Process with LLaVA (pass images as simple list)
             try:
                 batch_for_llava = batch.copy()
                 batch_for_llava['image'] = batch['image']

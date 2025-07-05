@@ -1,5 +1,5 @@
 # --- ULTIMATE CLIP 90% TARGET SCRIPT ---
-# Kombiniert ALLE verfügbaren Optimierungen für maximale Performance
+# Combines ALL available optimizations for maximum performance
 
 import os
 import glob
@@ -26,7 +26,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -36,18 +36,18 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_ultimate_text_variants(text: str) -> List[str]:
-    """ULTIMATE Text-Varianten - maximale Abdeckung"""
+    """ULTIMATE Text variants - maximum coverage"""
     variants = []
     
-    # Basis-Cleaning
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Variante 1: Original (bereinigt)
+    # Variant 1: Original (cleaned)
     variants.append(text)
     
-    # Variante 2: Kürzere Version (erste 3-7 Wörter)
+    # Variant 2: Shorter version (first 3-7 words)
     words = text.split()
     if len(words) > 2:
         for length in [3, 5, 7]:
@@ -55,7 +55,7 @@ def create_ultimate_text_variants(text: str) -> List[str]:
                 short_variant = ' '.join(words[:length])
                 variants.append(short_variant)
     
-    # Variante 3: Aggressive Stop-Wort-Entfernung
+    # Variant 3: Aggressive stop word removal
     stop_words = set(stopwords.words('english'))
     important_words = {
         'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video',
@@ -67,7 +67,7 @@ def create_ultimate_text_variants(text: str) -> List[str]:
         filtered_variant = ' '.join(filtered_words)
         variants.append(filtered_variant)
     
-    # Variante 4: Erweiterte Beschreibungen
+    # Variant 4: Extended descriptions
     if any(word in text for word in ['fake', 'false', 'hoax', 'misinformation']):
         extended_fake = f"this image shows fake news or misinformation: {text}"
         variants.append(extended_fake)
@@ -75,32 +75,32 @@ def create_ultimate_text_variants(text: str) -> List[str]:
         extended_real = f"this image shows real news or verified information: {text}"
         variants.append(extended_real)
     
-    # Variante 5: Frage-Format
+    # Variant 5: Question format
     question_variant = f"does this image accurately show: {text}?"
     variants.append(question_variant)
     
-    # Variante 6: Behauptung-Format
+    # Variant 6: Claim format
     claim_variant = f"this image claims to show: {text}"
     variants.append(claim_variant)
     
-    # Variante 7: Beschreibung-Format
+    # Variant 7: Description format
     desc_variant = f"an image depicting: {text}"
     variants.append(desc_variant)
     
-    # Variante 8: News-Format
+    # Variant 8: News format
     news_variant = f"news image showing: {text}"
     variants.append(news_variant)
     
-    return list(set(variants))  # Duplikate entfernen
+    return list(set(variants))  # Remove duplicates
 
 def create_ultimate_crops(image: Image.Image, num_crops: int = 5) -> List[Image.Image]:
-    """ULTIMATE Multi-Crop - adaptive Strategie"""
-    crops = [image]  # Original immer dabei
+    """ULTIMATE Multi-Crop - adaptive strategy"""
+    crops = [image]  # Original always included
     
     if num_crops > 1:
         width, height = image.size
         
-        # Crop 2: Center crop (bewährt)
+        # Crop 2: Center crop (proven)
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
         
@@ -122,7 +122,7 @@ def create_ultimate_crops(image: Image.Image, num_crops: int = 5) -> List[Image.
             square_crop = image.crop((start_x, start_y, start_x + min_dim, start_y + min_dim))
             crops.append(square_crop)
         
-        # Crop 6: Golden ratio crop (falls mehr als 5)
+        # Crop 6: Golden ratio crop (if more than 5)
         if num_crops > 5:
             phi = 1.618
             crop_width = int(width / phi)
@@ -135,22 +135,22 @@ def create_ultimate_crops(image: Image.Image, num_crops: int = 5) -> List[Image.
     return crops[:num_crops]
 
 def apply_image_augmentations(image: Image.Image) -> List[Image.Image]:
-    """Bild-Augmentationen für Robustheit"""
+    """Image augmentations for robustness"""
     augmented = [image]
     
-    # Helligkeit anpassen
+    # Adjust brightness
     enhancer = ImageEnhance.Brightness(image)
     bright = enhancer.enhance(1.2)
     dark = enhancer.enhance(0.8)
     augmented.extend([bright, dark])
     
-    # Kontrast anpassen
+    # Adjust contrast
     enhancer = ImageEnhance.Contrast(image)
     high_contrast = enhancer.enhance(1.3)
     low_contrast = enhancer.enhance(0.7)
     augmented.extend([high_contrast, low_contrast])
     
-    # Schärfe anpassen
+    # Adjust sharpness
     enhancer = ImageEnhance.Sharpness(image)
     sharp = enhancer.enhance(1.5)
     blurred = image.filter(ImageFilter.GaussianBlur(radius=1))
@@ -160,7 +160,7 @@ def apply_image_augmentations(image: Image.Image) -> List[Image.Image]:
 
 class UltimateCLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """ULTIMATE CLIP-Konfiguration für 90% Target"""
+        """ULTIMATE CLIP configuration for 90% Target"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -172,15 +172,15 @@ class UltimateCLIPHandler:
 
     def predict_similarity_ultimate(self, text: str, image: Image.Image, 
                                   num_crops: int = 5, use_augmentation: bool = True) -> Dict[str, float]:
-        """ULTIMATE Similarity-Berechnung - alle Optimierungen"""
+        """ULTIMATE Similarity calculation - all optimizations"""
         
-        # Text-Varianten erstellen
+        # Create text variants
         text_variants = create_ultimate_text_variants(text)
         
         # Ultimate Multi-Crop
         crops = create_ultimate_crops(image, num_crops)
         
-        # Bild-Augmentationen (optional)
+        # Image augmentations (optional)
         if use_augmentation:
             augmented_crops = []
             for crop in crops:
@@ -190,11 +190,11 @@ class UltimateCLIPHandler:
         all_similarities = []
         variant_scores = {}
         
-        # Für jede Text-Variante
+        # For each text variant
         for i, text_variant in enumerate(text_variants):
             variant_similarities = []
             
-            # Für jeden Crop
+            # For each crop
             for crop in crops:
                 inputs = self.processor(
                     text=[text_variant], 
@@ -211,7 +211,7 @@ class UltimateCLIPHandler:
                     variant_similarities.append(similarity)
                     all_similarities.append(similarity)
             
-            # Aggregation pro Variante
+            # Aggregation per variant
             if variant_similarities:
                 max_sim = max(variant_similarities)
                 mean_sim = np.mean(variant_similarities)
@@ -223,27 +223,27 @@ class UltimateCLIPHandler:
                     'weighted': 0.5 * max_sim + 0.3 * mean_sim + 0.2 * top_k_sim
                 }
         
-        # ULTIMATE Aggregation-Strategien
+        # ULTIMATE Aggregation strategies
         if all_similarities:
-            # Strategie 1: Global Max + Mean
+            # Strategy 1: Global Max + Mean
             global_max = max(all_similarities)
             global_mean = np.mean(all_similarities)
             
-            # Strategie 2: Top-K Weighted
+            # Strategy 2: Top-K Weighted
             sorted_sims = sorted(all_similarities, reverse=True)
             k = max(1, int(len(sorted_sims) * 0.3))  # Top 30%
             top_k_sims = sorted_sims[:k]
             top_k_weighted = np.mean(top_k_sims)
             
-            # Strategie 3: Variant-Weighted
-            variant_weights = [0.4, 0.3, 0.2, 0.1]  # Erste Varianten wichtiger
+            # Strategy 3: Variant-Weighted
+            variant_weights = [0.4, 0.3, 0.2, 0.1]  # First variants more important
             variant_scores_list = []
             for i, (variant_name, scores) in enumerate(variant_scores.items()):
                 weight = variant_weights[i] if i < len(variant_weights) else 0.05
                 variant_scores_list.append(scores['weighted'] * weight)
             variant_weighted = sum(variant_scores_list)
             
-            # Strategie 4: Ensemble-Weighted
+            # Strategy 4: Ensemble-Weighted
             ensemble_score = 0.3 * global_max + 0.2 * global_mean + 0.3 * top_k_weighted + 0.2 * variant_weighted
             
             return {
@@ -267,22 +267,22 @@ class UltimateCLIPHandler:
             }
 
     def find_ultimate_threshold(self, similarities: list, true_labels: list) -> Dict[str, Any]:
-        """ULTIMATE Schwellenwert-Optimierung - alle Strategien"""
+        """ULTIMATE threshold optimization - all strategies"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -295,21 +295,21 @@ class UltimateCLIPHandler:
         best_ba_idx = np.argmax(balanced_accuracies)
         ba_threshold = roc_thresholds[best_ba_idx]
         
-        # Custom Threshold für 90% Target: Precision-Recall Balance
+        # Custom Threshold for 90% Target: Precision-Recall Balance
         custom_scores = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
             precision = precision_score(true_labels, predictions, zero_division=0)
             recall = recall_score(true_labels, predictions, zero_division=0)
-            # Gewichte Recall höher für 90% Target
+            # Weight recall higher for 90% Target
             custom_score = 0.35 * precision + 0.65 * recall
             custom_scores.append(custom_score)
         
         best_custom_idx = np.argmax(custom_scores)
         custom_threshold = roc_thresholds[best_custom_idx]
         
-        # Grid Search für feinere Optimierung
-        grid_thresholds = np.arange(0.20, 0.35, 0.001)  # Feine Suche
+        # Grid Search for finer optimization
+        grid_thresholds = np.arange(0.20, 0.35, 0.001)  # Fine search
         grid_accuracies = []
         for threshold in grid_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -340,9 +340,9 @@ class UltimateCLIPHandler:
         }
 
 def calculate_ultimate_metrics(y_true, y_pred, similarities, threshold, strategy_name):
-    """Berechnet ULTIMATE Metriken für 90% Target"""
+    """Calculates ULTIMATE metrics for 90% Target"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -351,21 +351,21 @@ def calculate_ultimate_metrics(y_true, y_pred, similarities, threshold, strategy
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
-    print(f"\n{strategy_name.upper()} STRATEGY - VOLLSTÄNDIGE METRIKEN")
+    print(f"\n{strategy_name.upper()} STRATEGY - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -374,7 +374,7 @@ def calculate_ultimate_metrics(y_true, y_pred, similarities, threshold, strategy
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Ultimate Multi-crop, Text-variants, Augmentation")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")

@@ -1,5 +1,5 @@
-# --- Konservatives CLIP Verbesserungs-Script ---
-# Baut auf dem erfolgreichen 82%-Setup auf mit vorsichtigen Optimierungen
+# --- Conservative CLIP Improvement Script ---
+# Builds on the successful 82% setup with cautious optimizations
 
 import os
 import glob
@@ -23,7 +23,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -33,31 +33,31 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def conservative_text_preprocessing(text: str) -> str:
-    """Konservative Text-Preprocessing - nur bewährte Methoden"""
-    # Basis-Cleaning
+    """Conservative text preprocessing - only proven methods"""
+    # Basic cleaning
     text = text.lower().strip()
     
-    # Entferne URLs
+    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     
-    # Entferne spezielle Zeichen, behalte wichtige
+    # Remove special characters, keep important ones
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Selektive Stop-Wort-Entfernung (nur bewährte)
+    # Selective stop word removal (only proven)
     stop_words = set(stopwords.words('english'))
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     words = text.split()
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
     
-    # Mindestlänge sicherstellen
+    # Ensure minimum length
     if len(filtered_words) < 2:
         filtered_words = words[:3]  # Fallback
     
     return ' '.join(filtered_words)
 
 def create_conservative_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Image]:
-    """Konservative Multi-Crop - nur bewährte Ausschnitte"""
-    crops = [image]  # Original immer dabei
+    """Conservative multi-crop - only proven crops"""
+    crops = [image]  # Original always included
     
     if num_crops > 1:
         width, height = image.size
@@ -65,9 +65,9 @@ def create_conservative_crops(image: Image.Image, num_crops: int = 3) -> List[Im
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
         
-        # Nur ein zusätzlicher Crop für Stabilität
+        # Only one additional crop for stability
         if num_crops > 2:
-            # Quadratischer Crop aus der Mitte
+            # Square crop from center
             min_dim = min(width, height)
             start_x = (width - min_dim) // 2
             start_y = (height - min_dim) // 2
@@ -78,7 +78,7 @@ def create_conservative_crops(image: Image.Image, num_crops: int = 3) -> List[Im
 
 class ConservativeCLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """Konservative CLIP-Konfiguration - baut auf 82% auf"""
+        """Conservative CLIP configuration - builds on 82%"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -89,11 +89,11 @@ class ConservativeCLIPHandler:
         print("CLIP model loaded successfully!")
 
     def predict_similarity_conservative(self, text: str, image: Image.Image, num_crops: int = 3) -> float:
-        """Konservative Similarity-Berechnung - bewährte Methoden"""
-        # Konservative Text-Preprocessing
+        """Conservative similarity calculation - proven methods"""
+        # Conservative text preprocessing
         processed_text = conservative_text_preprocessing(text)
         
-        # Konservative Multi-Crop
+        # Conservative multi-crop
         crops = create_conservative_crops(image, num_crops)
         
         similarities = []
@@ -113,28 +113,28 @@ class ConservativeCLIPHandler:
                 similarity = (image_embeds @ text_embeds.T).cpu().item()
                 similarities.append(similarity)
         
-        # Bewährte Aggregation: Max + Mean (wie im 82%-Setup)
+        # Proven aggregation: Max + Mean (like in 82% setup)
         max_sim = max(similarities)
         mean_sim = np.mean(similarities)
         return 0.7 * max_sim + 0.3 * mean_sim
 
     def find_optimal_threshold_conservative(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Konservative Schwellenwert-Optimierung - bewährte Methoden"""
+        """Conservative threshold optimization - proven methods"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung (bewährt)
+        # ROC-based optimization (proven)
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -162,9 +162,9 @@ class ConservativeCLIPHandler:
         }
 
 def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
-    """Berechnet alle wichtigen Metriken für die Dokumentation"""
+    """Calculates all important metrics for documentation"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -173,22 +173,22 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("CONSERVATIVE CLIP EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("CONSERVATIVE CLIP EXPERIMENT - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -197,7 +197,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Conservative 3-crop, Text-preprocessing")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -239,24 +239,24 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     }
 
 def main():
-    """Hauptfunktion mit konservativen Verbesserungen"""
+    """Main function with conservative improvements"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_conservative_improvement_results.csv"
-    NUM_CROPS = 3  # Konservativ - wie im 82%-Setup
+    NUM_CROPS = 3  # Conservative - like in 82% setup
     
-    print("Conservative CLIP Experiment - Vorsichtige Verbesserungen")
+    print("Conservative CLIP Experiment - Cautious Improvements")
     print("="*55)
     print(f"Conservative Optimizations:")
-    print(f"  - Multi-crop: {NUM_CROPS} crops per image (bewährt)")
-    print(f"  - Text preprocessing: Selektive Stop-word removal")
-    print(f"  - Similarity aggregation: Max + Mean (bewährt)")
+    print(f"  - Multi-crop: {NUM_CROPS} crops per image (proven)")
+    print(f"  - Text preprocessing: Selective stop-word removal")
+    print(f"  - Similarity aggregation: Max + Mean (proven)")
     print(f"  - No aggressive augmentation")
     print(f"  - No over-optimization")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -265,15 +265,15 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # CLIP initialisieren
+    # Initialize CLIP
     clip = ConservativeCLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     similarities = []
     true_labels = []
@@ -298,11 +298,11 @@ def main():
             'clip_similarity': sim,
         })
     
-    # Konservative Schwellenwert-Optimierung
+    # Conservative threshold optimization
     print(f"\n🎯 Finding optimal threshold with conservative strategies...")
     threshold_analysis = clip.find_optimal_threshold_conservative(similarities, true_labels)
     
-    # Verschiedene Thresholds testen
+    # Test different thresholds
     thresholds_to_test = [
         ('roc_threshold', threshold_analysis['roc_threshold']),
         ('pr_threshold', threshold_analysis['pr_threshold']),
@@ -329,19 +329,19 @@ def main():
     print(f"\n🏆 Best threshold: {best_threshold_name} = {best_threshold:.3f}")
     print(f"🎯 Best accuracy: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Finale Predictions setzen
+    # Final predictions set
     for r in results:
         r['clip_predicted_label'] = int(r['clip_similarity'] >= best_threshold)
     
-    # Vollständige Metriken berechnen
+    # Calculate comprehensive metrics
     metrics = calculate_comprehensive_metrics(true_labels, best_predictions, similarities, best_threshold)
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "clip_conservative_improvement_metrics.json"
     metrics_dict = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v 

@@ -1,6 +1,6 @@
-# --- Colab-kompatibles optimiertes CLIP Script für 80%+ Accuracy ---
-# Vor Ausführung: !pip install transformers torch pillow pandas scikit-learn matplotlib seaborn nltk
-# Verbesserungsstrategien: Multi-crop, Text-Preprocessing, Ensemble-Thresholds
+# --- Colab-compatible optimized CLIP Script for 80%+ Accuracy ---
+# Before execution: !pip install transformers torch pillow pandas scikit-learn matplotlib seaborn nltk
+# Improvement strategies: Multi-crop, Text-Preprocessing, Ensemble-Thresholds
 
 import os
 import glob
@@ -24,7 +24,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -34,32 +34,32 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def preprocess_text(text: str) -> str:
-    """Verbesserte Text-Preprocessing für bessere CLIP-Performance"""
-    # Basis-Cleaning
+    """Improved text preprocessing for better CLIP performance"""
+    # Basic cleaning
     text = text.lower().strip()
     
-    # Entferne URLs
+    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     
-    # Entferne spezielle Zeichen, behalte wichtige
+    # Remove special characters, keep important ones
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Entferne Stop-Wörter (selektiv)
+    # Remove stopwords (selectively)
     stop_words = set(stopwords.words('english'))
-    # Wichtige Wörter beibehalten
+    # Keep important words
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     words = text.split()
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
     
-    # Mindestlänge sicherstellen
+    # Ensure minimum length
     if len(filtered_words) < 2:
         filtered_words = words[:3]  # Fallback
     
     return ' '.join(filtered_words)
 
 def create_image_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Image]:
-    """Erstellt mehrere Bildausschnitte für robustere Predictions"""
-    crops = [image]  # Original immer dabei
+    """Creates multiple image crops for more robust predictions"""
+    crops = [image]  # Always include original
     
     if num_crops > 1:
         width, height = image.size
@@ -80,7 +80,7 @@ def create_image_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Ima
 
 class OptimizedCLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """Optimierte CLIP-Konfiguration"""
+        """Optimized CLIP configuration"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -91,11 +91,11 @@ class OptimizedCLIPHandler:
         print("CLIP model loaded successfully!")
 
     def predict_similarity_robust(self, text: str, image: Image.Image, num_crops: int = 3) -> float:
-        """Robuste Similarity-Berechnung mit Multi-Crop"""
-        # Text-Preprocessing
+        """Robust similarity calculation with multi-crop"""
+        # Text preprocessing
         processed_text = preprocess_text(text)
         
-        # Multi-Crop Predictions
+        # Multi-crop predictions
         crops = create_image_crops(image, num_crops)
         similarities = []
         
@@ -117,25 +117,25 @@ class OptimizedCLIPHandler:
         # Aggregation: Max + Mean
         max_sim = max(similarities)
         mean_sim = np.mean(similarities)
-        return 0.7 * max_sim + 0.3 * mean_sim  # Gewichtete Kombination
+        return 0.7 * max_sim + 0.3 * mean_sim  # Weighted combination
 
     def find_optimal_threshold_advanced(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Erweiterte Schwellenwert-Optimierung mit mehreren Metriken"""
+        """Advanced threshold optimization with multiple metrics"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
-        best_pr_idx = np.argmax(f1_scores[:-1])  # Letzte Precision ist 1.0
+        best_pr_idx = np.argmax(f1_scores[:-1])  # Last precision is 1.0
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -163,9 +163,9 @@ class OptimizedCLIPHandler:
         }
 
 def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
-    """Berechnet alle wichtigen Metriken für die Dokumentation"""
+    """Calculates all important metrics for documentation"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -174,22 +174,22 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("OPTIMIZED CLIP EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("OPTIMIZED CLIP EXPERIMENT - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -198,7 +198,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Multi-crop, Text-preprocessing")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -240,7 +240,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     }
 
 def plot_optimized_results(metrics, threshold_analysis):
-    """Erstellt erweiterte Visualisierungen der optimierten Ergebnisse"""
+    """Creates enhanced visualizations of optimized results"""
     
     plt.figure(figsize=(20, 5))
     
@@ -299,15 +299,15 @@ def plot_optimized_results(metrics, threshold_analysis):
     plt.tight_layout()
     plt.show()
 
-# --- Hauptfunktion für Colab ---
+# --- Main function for Colab ---
 def main():
-    """Hauptfunktion mit Optimierungen für 80%+ Accuracy"""
+    """Main function with optimizations for 80%+ Accuracy"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_optimized_80_percent_results.csv"
-    NUM_CROPS = 3  # Multi-crop Parameter
+    NUM_CROPS = 3  # Multi-crop parameter
     
     print("Optimized CLIP Experiment - 80%+ Accuracy Target")
     print("="*55)
@@ -317,26 +317,26 @@ def main():
     print(f"  - Advanced threshold optimization")
     print(f"  - Robust similarity aggregation")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
-        print("Bitte test_balanced_pairs_clean.csv hochladen!")
+        print("Please upload test_balanced_pairs_clean.csv!")
         return
     
     if not os.path.exists("colab_images"):
         print("❌ colab_images folder not found!")
-        print("Bitte colab_images.zip entpacken: !unzip -o colab_images.zip -d colab_images")
+        print("Please unzip colab_images.zip: !unzip -o colab_images.zip -d colab_images")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # CLIP initialisieren
+    # Initialize CLIP
     clip = OptimizedCLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     similarities = []
     true_labels = []
@@ -362,11 +362,11 @@ def main():
             'clip_similarity': sim,
         })
     
-    # Erweiterte Schwellenwert-Optimierung
+    # Advanced threshold optimization
     print(f"\n🎯 Finding optimal threshold with multiple strategies...")
     threshold_analysis = clip.find_optimal_threshold_advanced(similarities, true_labels)
     
-    # Verschiedene Thresholds testen
+    # Test different thresholds
     thresholds_to_test = [
         ('roc_threshold', threshold_analysis['roc_threshold']),
         ('pr_threshold', threshold_analysis['pr_threshold']),
@@ -384,7 +384,7 @@ def main():
         accuracy = accuracy_score(true_labels, predictions)
         print(f"  {name}: {accuracy:.3f} ({accuracy*100:.1f}%)")
         
-        # Speichere Accuracy für Plot
+        # Store accuracy for plotting
         if name == 'roc_threshold':
             threshold_analysis['roc_accuracy'] = accuracy
         elif name == 'pr_threshold':
@@ -401,19 +401,19 @@ def main():
     print(f"\n🏆 Best threshold: {best_threshold_name} = {best_threshold:.3f}")
     print(f"🎯 Best accuracy: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Finale Predictions setzen
+    # Final predictions
     for r in results:
         r['clip_predicted_label'] = int(r['clip_similarity'] >= best_threshold)
     
-    # Vollständige Metriken berechnen
+    # Calculate comprehensive metrics
     metrics = calculate_comprehensive_metrics(true_labels, best_predictions, similarities, best_threshold)
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "clip_optimized_80_percent_metrics.json"
     metrics_dict = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v 
@@ -424,7 +424,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating visualizations...")
     plot_optimized_results(metrics, threshold_analysis)
     

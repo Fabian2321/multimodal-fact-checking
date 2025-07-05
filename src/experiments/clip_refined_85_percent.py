@@ -1,5 +1,5 @@
 # --- REFINED CLIP 85% TARGET SCRIPT ---
-# Baut auf dem bewährten 82%-Setup auf mit gezielten, vorsichtigen Verbesserungen
+# Builds on the proven 82% setup with targeted, cautious improvements
 
 import os
 import glob
@@ -23,7 +23,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -33,24 +33,24 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_refined_text_variants(text: str) -> List[str]:
-    """Verfeinerte Text-Varianten - nur bewährte Ansätze"""
+    """Refined text variants - only proven approaches"""
     variants = []
     
-    # Basis-Cleaning (wie im 82%-Setup)
+    # Basic cleaning (as in 82% setup)
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Variante 1: Original (bereinigt) - BEWÄHRT
+    # Variant 1: Original (cleaned) - PROVEN
     variants.append(text)
     
-    # Variante 2: Kürzere Version (nur erste 5 Wörter) - BEWÄHRT
+    # Variant 2: Shorter version (first 5 words) - PROVEN
     words = text.split()
     if len(words) > 3:
         short_variant = ' '.join(words[:5])
         variants.append(short_variant)
     
-    # Variante 3: Selektive Stop-Wort-Entfernung - BEWÄHRT
+    # Variant 3: Selective stopword removal - PROVEN
     stop_words = set(stopwords.words('english'))
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
@@ -59,7 +59,7 @@ def create_refined_text_variants(text: str) -> List[str]:
         if filtered_variant != text:
             variants.append(filtered_variant)
     
-    # Variante 4: Einfache Erweiterung (nur bei klaren Indikatoren)
+    # Variant 4: Simple extension (only for clear indicators)
     if 'fake' in text or 'false' in text:
         extended = f"fake news: {text}"
         variants.append(extended)
@@ -67,19 +67,19 @@ def create_refined_text_variants(text: str) -> List[str]:
         extended = f"real news: {text}"
         variants.append(extended)
     
-    return list(set(variants))  # Duplikate entfernen
+    return list(set(variants))  # Remove duplicates
 
 def create_refined_crops(image: Image.Image, num_crops: int = 4) -> List[Image.Image]:
-    """Verfeinerte Multi-Crop - nur bewährte Ausschnitte"""
-    crops = [image]  # Original immer dabei
+    """Refined multi-crop - only proven crops"""
+    crops = [image]  # Always include original
     
     if num_crops > 1:
         width, height = image.size
-        # Center crop (bewährt)
+        # Center crop (proven)
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
         
-        # Corner crops (bewährt)
+        # Corner crops (proven)
         if num_crops > 2:
             top_left = image.crop((0, 0, width//2, height//2))
             crops.append(top_left)
@@ -91,24 +91,24 @@ def create_refined_crops(image: Image.Image, num_crops: int = 4) -> List[Image.I
     return crops[:num_crops]
 
 def preprocess_text(text: str) -> str:
-    """Basis-Text-Preprocessing (wie im 82%-Setup)"""
-    # Basis-Cleaning
+    """Basic text preprocessing (as in 82% setup)"""
+    # Basic cleaning
     text = text.lower().strip()
     
-    # Entferne URLs
+    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     
-    # Entferne spezielle Zeichen, behalte wichtige
+    # Remove special characters, keep important ones
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Entferne Stop-Wörter (selektiv)
+    # Remove stopwords (selectively)
     stop_words = set(stopwords.words('english'))
-    # Wichtige Wörter beibehalten
+    # Keep important words
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     words = text.split()
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
     
-    # Mindestlänge sicherstellen
+    # Ensure minimum length
     if len(filtered_words) < 2:
         filtered_words = words[:3]  # Fallback
     
@@ -116,7 +116,7 @@ def preprocess_text(text: str) -> str:
 
 class RefinedCLIPHandler:
     def __init__(self, model_name: str = "openai/clip-vit-base-patch16"):
-        """Verfeinerte CLIP-Konfiguration - baut auf 82% auf"""
+        """Refined CLIP configuration - builds on 82%"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -127,22 +127,22 @@ class RefinedCLIPHandler:
         print("CLIP model loaded successfully!")
 
     def predict_similarity_refined(self, text: str, image: Image.Image, num_crops: int = 4) -> Dict[str, float]:
-        """Verfeinerte Similarity-Berechnung - bewährte Methoden + vorsichtige Verbesserungen"""
+        """Refined similarity calculation - proven methods + cautious improvements"""
         
-        # Text-Varianten erstellen (verfeinert)
+        # Create text variants (refined)
         text_variants = create_refined_text_variants(text)
         
-        # Verfeinerte Multi-Crop
+        # Refined multi-crop
         crops = create_refined_crops(image, num_crops)
         
         all_similarities = []
         variant_scores = {}
         
-        # Für jede Text-Variante
+        # For each text variant
         for i, text_variant in enumerate(text_variants):
             variant_similarities = []
             
-            # Für jeden Crop
+            # For each crop
             for crop in crops:
                 inputs = self.processor(
                     text=[text_variant], 
@@ -159,22 +159,22 @@ class RefinedCLIPHandler:
                     variant_similarities.append(similarity)
                     all_similarities.append(similarity)
             
-            # Aggregation pro Variante (bewährt: Max + Mean)
+            # Aggregation per variant (proven: Max + Mean)
             if variant_similarities:
                 max_sim = max(variant_similarities)
                 mean_sim = np.mean(variant_similarities)
                 variant_scores[f'variant_{i}'] = 0.7 * max_sim + 0.3 * mean_sim
         
-        # Verfeinerte Aggregation-Strategien
+        # Refined aggregation strategies
         if all_similarities:
-            # Strategie 1: Bewährte Max + Mean (wie 82%-Setup)
+            # Strategy 1: Proven Max + Mean (as in 82% setup)
             global_max = max(all_similarities)
             global_mean = np.mean(all_similarities)
             traditional = 0.7 * global_max + 0.3 * global_mean
             
-            # Strategie 2: Variant-Weighted (vorsichtig)
+            # Strategy 2: Variant-weighted (cautious)
             if variant_scores:
-                variant_weights = [0.5, 0.3, 0.2]  # Erste Varianten wichtiger
+                variant_weights = [0.5, 0.3, 0.2]  # First variants more important
                 variant_weighted = 0
                 for i, (variant_name, score) in enumerate(variant_scores.items()):
                     weight = variant_weights[i] if i < len(variant_weights) else 0.1
@@ -182,16 +182,16 @@ class RefinedCLIPHandler:
             else:
                 variant_weighted = traditional
             
-            # Strategie 3: Top-K (vorsichtig, nur Top 50%)
+            # Strategy 3: Top-K (cautious, only top 50%)
             sorted_sims = sorted(all_similarities, reverse=True)
             k = max(1, int(len(sorted_sims) * 0.5))  # Top 50%
             top_k_sims = sorted_sims[:k]
             top_k_weighted = np.mean(top_k_sims)
             
             return {
-                'traditional': traditional,  # Bewährt (82%-Setup)
-                'variant_weighted': variant_weighted,  # Vorsichtig
-                'top_k_weighted': top_k_weighted,  # Vorsichtig
+                'traditional': traditional,  # Proven (82% setup)
+                'variant_weighted': variant_weighted,  # Cautious
+                'top_k_weighted': top_k_weighted,  # Cautious
                 'all_similarities': all_similarities
             }
         else:
@@ -203,22 +203,22 @@ class RefinedCLIPHandler:
             }
 
     def find_refined_threshold(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Verfeinerte Schwellenwert-Optimierung - bewährte Methoden"""
+        """Refined threshold optimization - proven methods"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung (bewährt)
+        # ROC-based optimization (proven)
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -231,8 +231,8 @@ class RefinedCLIPHandler:
         best_ba_idx = np.argmax(balanced_accuracies)
         ba_threshold = roc_thresholds[best_ba_idx]
         
-        # Feine Grid Search um bewährte Thresholds
-        base_thresholds = [roc_threshold, pr_threshold, ba_threshold, 0.256]  # 0.256 war bewährt
+        # Fine grid search around proven thresholds
+        base_thresholds = [roc_threshold, pr_threshold, ba_threshold, 0.256]  # 0.256 was proven
         grid_thresholds = []
         for base in base_thresholds:
             grid_thresholds.extend([base - 0.01, base, base + 0.01])
@@ -264,9 +264,9 @@ class RefinedCLIPHandler:
         }
 
 def calculate_refined_metrics(y_true, y_pred, similarities, threshold, strategy_name):
-    """Berechnet verfeinerte Metriken"""
+    """Calculates refined metrics"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -275,21 +275,21 @@ def calculate_refined_metrics(y_true, y_pred, similarities, threshold, strategy_
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
-    print(f"\n{strategy_name.upper()} STRATEGY - VOLLSTÄNDIGE METRIKEN")
+    print(f"\n{strategy_name.upper()} STRATEGY - FULL METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-base-patch16")
@@ -298,7 +298,7 @@ def calculate_refined_metrics(y_true, y_pred, similarities, threshold, strategy_
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Refined Multi-crop, Text-variants")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -341,7 +341,7 @@ def calculate_refined_metrics(y_true, y_pred, similarities, threshold, strategy_
     }
 
 def plot_refined_results(all_metrics, threshold_analysis):
-    """Erstellt verfeinerte Visualisierungen"""
+    """Creates refined visualizations"""
     
     strategies = list(all_metrics.keys())
     accuracies = [all_metrics[s]['accuracy'] for s in strategies]
@@ -402,24 +402,24 @@ def plot_refined_results(all_metrics, threshold_analysis):
     plt.show()
 
 def main():
-    """Verfeinertes CLIP Experiment für 85% Target"""
+    """Refined CLIP Experiment for 85% Target"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_refined_85_percent_results.csv"
-    NUM_CROPS = 4  # Verfeinert - zwischen 3 (82%) und 5 (80%)
+    NUM_CROPS = 4  # Refined - between 3 (82%) and 5 (80%)
     
     print("Refined CLIP Experiment - 85% Target")
     print("="*45)
     print(f"Refined Optimizations:")
     print(f"  - Refined Multi-crop: {NUM_CROPS} crops per image")
     print(f"  - Refined Text variants: 4 processing approaches")
-    print(f"  - No image augmentation (bewährt)")
+    print(f"  - No image augmentation (proven approach)")
     print(f"  - Conservative aggregation strategies")
     print(f"  - Grid search around proven thresholds")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -428,15 +428,15 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # CLIP initialisieren
+    # Initialize CLIP
     clip = RefinedCLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     all_strategies = {}
     
@@ -449,7 +449,7 @@ def main():
         image = load_local_image(row['id'])
         similarity_dict = clip.predict_similarity_refined(row['clean_title'], image, NUM_CROPS)
         
-        # Alle Strategien sammeln
+        # Collect all strategies
         for strategy_name, similarity in similarity_dict.items():
             if strategy_name != 'all_similarities':
                 if strategy_name not in all_strategies:
@@ -464,7 +464,7 @@ def main():
             **similarity_dict
         })
     
-    # Verfeinerte Schwellenwert-Optimierung für jede Strategie
+    # Find refined thresholds for each strategy
     print(f"\n🎯 Finding refined thresholds for all strategies...")
     all_metrics = {}
     threshold_analysis = {}
@@ -473,10 +473,10 @@ def main():
         print(f"\n--- Optimizing {strategy_name} ---")
         true_labels = [r['true_label'] for r in results]
         
-        # Threshold-Optimierung
+        # Threshold optimization
         strategy_thresholds = clip.find_refined_threshold(similarities, true_labels)
         
-        # Verschiedene Thresholds testen
+        # Test different thresholds
         thresholds_to_test = [
             ('roc_threshold', strategy_thresholds['roc_threshold']),
             ('pr_threshold', strategy_thresholds['pr_threshold']),
@@ -495,7 +495,7 @@ def main():
             accuracy = accuracy_score(true_labels, predictions)
             print(f"  {name}: {accuracy:.3f} ({accuracy*100:.1f}%)")
             
-            # Speichere für Plot
+            # Store for plotting
             threshold_analysis[f'{strategy_name}_{name.split("_")[0]}_accuracy'] = accuracy
             
             if accuracy > best_accuracy:
@@ -506,29 +506,29 @@ def main():
         
         print(f"Best {strategy_name}: {best_threshold_name} = {best_threshold:.3f} -> {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
         
-        # Metriken berechnen
+        # Calculate metrics
         metrics = calculate_refined_metrics(true_labels, best_predictions, similarities, best_threshold, strategy_name)
         all_metrics[strategy_name] = metrics
     
-    # Beste Strategie finden
+    # Find the best strategy
     best_strategy = max(all_metrics.keys(), key=lambda x: all_metrics[x]['accuracy'])
     best_accuracy = all_metrics[best_strategy]['accuracy']
     
-    print(f"\n🏆 BESTE STRATEGIE: {best_strategy}")
-    print(f"🎯 BESTE ACCURACY: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
+    print(f"\n🏆 BEST STRATEGY: {best_strategy}")
+    print(f"🎯 BEST ACCURACY: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Vergleich mit 82% Baseline
+    # Compare with 82% baseline
     baseline_accuracy = 0.82
     improvement = best_accuracy - baseline_accuracy
     
     if improvement > 0:
-        print(f"📈 VERBESSERUNG: +{improvement:.3f} (+{improvement*100:.1f}%) über 82% Baseline")
+        print(f"📈 IMPROVEMENT: +{improvement:.3f} (+{improvement*100:.1f}%) over 82% baseline")
     elif improvement < 0:
-        print(f"📉 RÜCKSCHRITT: {improvement:.3f} ({improvement*100:.1f}%) unter 82% Baseline")
+        print(f"📉 REGRESSION: {improvement:.3f} ({improvement*100:.1f}%) under 82% baseline")
     else:
-        print(f"📊 GLEICH: Keine Änderung zur 82% Baseline")
+        print(f"📊 NO CHANGE: No change to 82% baseline")
     
-    # Finale Predictions setzen
+    # Final predictions set
     best_similarities = all_strategies[best_strategy]
     best_threshold = all_metrics[best_strategy]['threshold']
     
@@ -537,12 +537,12 @@ def main():
         r['best_strategy'] = best_strategy
         r['best_threshold'] = best_threshold
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "clip_refined_85_percent_metrics.json"
     metrics_dict = {}
@@ -563,7 +563,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating refined visualizations...")
     plot_refined_results(all_metrics, threshold_analysis)
     

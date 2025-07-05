@@ -1,5 +1,5 @@
 # --- COLAB BLIP2 SIMPLIFIED - 70%+ TARGET ---
-# Vereinfachte BLIP2 Version mit besseren Prompts und Parsing
+# Simplified BLIP2 version with better prompts and parsing
 
 import os
 import glob
@@ -16,7 +16,7 @@ import re
 import time
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -26,49 +26,49 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_simple_crops(image: Image.Image, num_crops: int = 2) -> List[Image.Image]:
-    """Vereinfachte Multi-Crop - nur 2 Crops"""
-    crops = [image]  # Original immer dabei
+    """Simplified multi-crop - only 2 crops"""
+    crops = [image]  # Always include original
     
     if num_crops > 1:
         width, height = image.size
-        # Nur Center crop
+        # Only center crop
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
     
     return crops[:num_crops]
 
 def create_simple_prompts(text: str) -> List[str]:
-    """Vereinfachte Prompts für bessere BLIP2 Performance"""
+    """Simplified prompts for better BLIP2 performance"""
     prompts = []
     
-    # Basis-Cleaning
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Prompt 1: Einfache Ja/Nein Frage
+    # Prompt 1: Simple yes/no question
     prompt1 = f"Question: Does this image match the text '{text}'? Answer yes or no. Answer:"
     prompts.append(prompt1)
     
-    # Prompt 2: Direkte Verifikation
+    # Prompt 2: Direct verification
     prompt2 = f"Question: Is this image related to '{text}'? Answer yes or no. Answer:"
     prompts.append(prompt2)
     
     return prompts
 
 def parse_blip2_response_simple(response: str) -> float:
-    """Vereinfachtes BLIP2 Response-Parsing"""
+    """Simplified BLIP2 response parsing"""
     response = response.lower().strip()
     
-    # Direkte Ja/Nein Erkennung
+    # Direct yes/no detection
     if 'yes' in response and 'no' not in response:
-        return 0.8  # Hohe Wahrscheinlichkeit für Match
+        return 0.8  # High probability for match
     elif 'no' in response and 'yes' not in response:
-        return 0.2  # Niedrige Wahrscheinlichkeit für Match
+        return 0.2  # Low probability for match
     elif 'yes' in response and 'no' in response:
-        return 0.5  # Neutral (beide Wörter)
+        return 0.5  # Neutral (both words)
     else:
-        # Fallback: Wort-basierte Analyse
+        # Fallback: word-based analysis
         positive_words = ['match', 'related', 'correct', 'true', 'accurate']
         negative_words = ['not', 'false', 'wrong', 'different', 'unrelated']
         
@@ -84,11 +84,11 @@ def parse_blip2_response_simple(response: str) -> float:
 
 class SimplifiedBLIP2Handler:
     def __init__(self):
-        """Vereinfachter BLIP2 Handler"""
+        """Simplified BLIP2 handler"""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         
-        # BLIP2 Model laden
+        # Load BLIP2 model
         print("Loading BLIP2 model: Salesforce/blip2-opt-2.7b")
         self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
         self.model = Blip2ForConditionalGeneration.from_pretrained(
@@ -98,21 +98,21 @@ class SimplifiedBLIP2Handler:
         print("BLIP2 model loaded successfully!")
 
     def predict_simple(self, text: str, image: Image.Image) -> Dict[str, Any]:
-        """Vereinfachte Prediction mit weniger Optimierungen"""
+        """Simplified prediction with fewer optimizations"""
         
-        # Vereinfachte Prompts
+        # Simplified prompts
         prompts = create_simple_prompts(text)
         
-        # Nur 2 Crops
+        # Only 2 crops
         crops = create_simple_crops(image, 2)
         
         all_scores = []
         
-        # Für jeden Prompt
+        # For each prompt
         for prompt in prompts:
             prompt_scores = []
             
-            # Für jeden Crop
+            # For each crop
             for crop in crops:
                 try:
                     inputs = self.processor(
@@ -124,8 +124,8 @@ class SimplifiedBLIP2Handler:
                     with torch.no_grad():
                         outputs = self.model.generate(
                             **inputs,
-                            max_new_tokens=20,  # Kürzer
-                            num_beams=3,        # Weniger Beams
+                            max_new_tokens=20,  # Shorter
+                            num_beams=3,        # Fewer beams
                             do_sample=False,    # Greedy decoding
                             temperature=1.0,    # Standard
                             repetition_penalty=1.0  # Standard
@@ -137,14 +137,14 @@ class SimplifiedBLIP2Handler:
                     
                 except Exception as e:
                     print(f"Error in prediction: {e}")
-                    prompt_scores.append(0.5)  # Neutral bei Fehler
+                    prompt_scores.append(0.5)  # Neutral on error
             
-            # Einfache Aggregation pro Prompt
+            # Simple aggregation per prompt
             if prompt_scores:
                 avg_score = np.mean(prompt_scores)
                 all_scores.append(avg_score)
         
-        # Finale Aggregation
+        # Final aggregation
         if all_scores:
             final_score = np.mean(all_scores)
         else:
@@ -158,22 +158,22 @@ class SimplifiedBLIP2Handler:
         }
 
     def find_optimal_threshold(self, scores: list, true_labels: list) -> Dict[str, float]:
-        """Optimale Schwellenwert-Optimierung"""
+        """Optimal threshold optimization"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, scores)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, scores)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(score >= threshold) for score in scores]
@@ -201,9 +201,9 @@ class SimplifiedBLIP2Handler:
         }
 
 def calculate_simplified_metrics(y_true, y_pred, scores, threshold):
-    """Berechnet Metriken für vereinfachte BLIP2"""
+    """Calculates metrics for simplified BLIP2"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -212,22 +212,22 @@ def calculate_simplified_metrics(y_true, y_pred, scores, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, scores)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Score-Statistiken
+    # Score statistics
     pos_scores = [s for s, l in zip(scores, y_true) if l == 1]
     neg_scores = [s for s, l in zip(scores, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("SIMPLIFIED BLIP2 EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("SIMPLIFIED BLIP2 EXPERIMENT - FULL METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: Salesforce/blip2-opt-2.7b")
@@ -236,7 +236,7 @@ def calculate_simplified_metrics(y_true, y_pred, scores, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Simplified (2 crops, 2 prompts, simple parsing)")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -278,7 +278,7 @@ def calculate_simplified_metrics(y_true, y_pred, scores, threshold):
     }
 
 def plot_simplified_results(metrics, threshold_analysis):
-    """Erstellt Visualisierungen für vereinfachte BLIP2"""
+    """Creates visualizations for simplified BLIP2"""
     
     # Confusion Matrix
     plt.figure(figsize=(15, 5))
@@ -320,9 +320,9 @@ def plot_simplified_results(metrics, threshold_analysis):
     plt.show()
 
 def main():
-    """Vereinfachtes BLIP2 Experiment für 70%+ Target"""
+    """Simplified BLIP2 experiment for 70%+ target"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "colab_blip2_simplified_results.csv"
@@ -336,7 +336,7 @@ def main():
     print(f"  - Simple parsing: Yes/No detection")
     print(f"  - Greedy decoding: Faster generation")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -345,18 +345,18 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # BLIP2 initialisieren
+    # Initialize BLIP2
     start_time = time.time()
     blip2 = SimplifiedBLIP2Handler()
     init_time = time.time() - start_time
     print(f"⏱️ Model initialization: {init_time:.2f}s")
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     scores = []
     
@@ -384,13 +384,13 @@ def main():
     pred_time = time.time() - pred_start_time
     print(f"⏱️ Prediction time: {pred_time:.2f}s ({pred_time/len(df):.3f}s per sample)")
     
-    # Schwellenwert-Optimierung
+    # Threshold optimization
     print(f"\n🎯 Finding optimal threshold for simplified BLIP2...")
     true_labels = [r['true_label'] for r in results]
     
     threshold_analysis = blip2.find_optimal_threshold(scores, true_labels)
     
-    # Verschiedene Thresholds testen
+    # Test different thresholds
     thresholds_to_test = [
         ('roc_threshold', threshold_analysis['roc_threshold']),
         ('pr_threshold', threshold_analysis['pr_threshold']),
@@ -416,20 +416,20 @@ def main():
     
     print(f"Best simplified BLIP2: {best_threshold_name} = {best_threshold:.3f} -> {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Metriken berechnen
+    # Calculate metrics
     metrics = calculate_simplified_metrics(true_labels, best_predictions, scores, best_threshold)
     
-    # Finale Predictions setzen
+    # Final predictions set
     for r in results:
         r['predicted_label'] = int(r['blip2_score'] >= best_threshold)
         r['threshold'] = best_threshold
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "colab_blip2_simplified_metrics.json"
     metrics_dict = {
@@ -457,7 +457,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating simplified BLIP2 visualizations...")
     plot_simplified_results(metrics, threshold_analysis)
     
@@ -466,7 +466,7 @@ def main():
     print(f"🎉 Achieved {best_accuracy*100:.1f}% accuracy!")
     print(f"⏱️ Total time: {total_time:.2f}s")
     
-    # Vergleich mit vorherigem BLIP2
+    # Comparison with previous BLIP2
     previous_blip2 = 0.61
     improvement = best_accuracy - previous_blip2
     
@@ -484,11 +484,11 @@ def main():
         print(f"💡 BLIP2 might not be optimal for this task")
     
     if improvement > 0:
-        print(f"📈 VERBESSERUNG: +{improvement:.3f} (+{improvement*100:.1f}%) über vorherigem BLIP2")
+        print(f"📈 IMPROVEMENT: +{improvement:.3f} (+{improvement*100:.1f}%) over previous BLIP2")
     elif improvement < 0:
-        print(f"📉 RÜCKSCHRITT: {improvement:.3f} ({improvement*100:.1f}%) unter vorherigem BLIP2")
+        print(f"📉 REGRESSION: {improvement:.3f} ({improvement*100:.1f}%) under previous BLIP2")
     else:
-        print(f"📊 GLEICH: Keine Änderung zum vorherigen BLIP2")
+        print(f"📊 EQUAL: No change to previous BLIP2")
     
     print(f"\n📋 Simplified BLIP2 Summary:")
     print(f"  - Model: Salesforce/blip2-opt-2.7b")

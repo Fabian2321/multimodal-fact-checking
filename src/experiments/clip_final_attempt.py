@@ -1,5 +1,5 @@
 # --- FINAL CLIP ATTEMPT - 84% TARGET ---
-# Fundamental anderer Ansatz: Multi-Model Ensemble + Adaptive Thresholding
+# Fundamentally different approach: Multi-Model Ensemble + Adaptive Thresholding
 
 import os
 import glob
@@ -23,7 +23,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -33,24 +33,24 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_optimal_text_variants(text: str) -> List[str]:
-    """Optimale Text-Varianten - nur die besten"""
+    """Optimal text variants - only the best"""
     variants = []
     
-    # Basis-Cleaning
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Variante 1: Original (bereinigt) - BEWÄHRT
+    # Variant 1: Original (cleaned) - PROVEN
     variants.append(text)
     
-    # Variante 2: Kürzere Version (nur erste 4 Wörter) - OPTIMIERT
+    # Variant 2: Shorter version (first 4 words) - OPTIMIZED
     words = text.split()
     if len(words) > 3:
         short_variant = ' '.join(words[:4])
         variants.append(short_variant)
     
-    # Variante 3: Selektive Stop-Wort-Entfernung - BEWÄHRT
+    # Variant 3: Selective stopword removal - PROVEN
     stop_words = set(stopwords.words('english'))
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
@@ -62,16 +62,16 @@ def create_optimal_text_variants(text: str) -> List[str]:
     return list(set(variants))
 
 def create_optimal_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Image]:
-    """Optimale Multi-Crop - zurück zu bewährten 3 Crops"""
-    crops = [image]  # Original immer dabei
+    """Optimal multi-crop - back to proven 3 crops"""
+    crops = [image]  # Always include original
     
     if num_crops > 1:
         width, height = image.size
-        # Center crop (bewährt)
+        # Center crop (proven)
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
         
-        # Quadratischer Crop aus der Mitte (bewährt)
+        # Square crop from center (proven)
         if num_crops > 2:
             min_dim = min(width, height)
             start_x = (width - min_dim) // 2
@@ -83,15 +83,15 @@ def create_optimal_crops(image: Image.Image, num_crops: int = 3) -> List[Image.I
 
 class MultiCLIPHandler:
     def __init__(self):
-        """Multi-CLIP Handler für Ensemble-Ansatz"""
+        """Multi-CLIP handler for ensemble approach"""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         
-        # CLIP Modelle laden
+        # Load CLIP models
         self.models = {}
         self.processors = {}
         
-        # Modelle: Verschiedene CLIP-Varianten
+        # Models: Different CLIP variants
         model_configs = [
             ("openai/clip-vit-base-patch16", "base16"),
             ("openai/clip-vit-base-patch32", "base32"),
@@ -112,24 +112,24 @@ class MultiCLIPHandler:
         print(f"✅ Loaded {len(self.models)} CLIP models")
 
     def predict_similarity_multi(self, text: str, image: Image.Image) -> Dict[str, float]:
-        """Multi-CLIP Similarity-Berechnung"""
+        """Multi-CLIP similarity calculation"""
         
-        # Text-Varianten erstellen
+        # Create text variants
         text_variants = create_optimal_text_variants(text)
         
-        # Optimale Multi-Crop
+        # Optimal multi-crop
         crops = create_optimal_crops(image, 3)
         
         all_model_scores = {}
         
-        # Für jedes CLIP-Modell
+        # For each CLIP model
         for model_id, model in self.models.items():
             processor = self.processors[model_id]
             model_similarities = []
             
-            # Für jede Text-Variante
+            # For each text variant
             for text_variant in text_variants:
-                # Für jeden Crop
+                # For each crop
                 for crop in crops:
                     inputs = processor(
                         text=[text_variant], 
@@ -145,22 +145,22 @@ class MultiCLIPHandler:
                         similarity = (image_embeds @ text_embeds.T).cpu().item()
                         model_similarities.append(similarity)
             
-            # Aggregation pro Modell (bewährt: Max + Mean)
+            # Aggregation per model (proven: Max + Mean)
             if model_similarities:
                 max_sim = max(model_similarities)
                 mean_sim = np.mean(model_similarities)
                 all_model_scores[model_id] = 0.7 * max_sim + 0.3 * mean_sim
         
-        # Ensemble-Aggregation
+        # Ensemble aggregation
         if all_model_scores:
-            # Gewichtete Kombination (base16 wichtiger)
+            # Weighted combination (base16 more important)
             weights = {'base16': 0.6, 'base32': 0.4}
             ensemble_score = 0
             for model_id, score in all_model_scores.items():
                 weight = weights.get(model_id, 0.5)
                 ensemble_score += score * weight
             
-            # Normalisierung
+            # Normalization
             total_weight = sum(weights.get(model_id, 0.5) for model_id in all_model_scores.keys())
             ensemble_score /= total_weight
             
@@ -172,22 +172,22 @@ class MultiCLIPHandler:
             return {'ensemble': 0.0}
 
     def find_adaptive_threshold(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Adaptives Thresholding für optimale Trennung"""
+        """Adaptive thresholding for optimal separation"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -200,10 +200,10 @@ class MultiCLIPHandler:
         best_ba_idx = np.argmax(balanced_accuracies)
         ba_threshold = roc_thresholds[best_ba_idx]
         
-        # Adaptive Threshold: Kombination der besten
+        # Adaptive Threshold: Combination of best
         adaptive_threshold = (roc_threshold + pr_threshold + ba_threshold) / 3
         
-        # Feine Suche um adaptive Threshold
+        # Fine search for adaptive threshold
         search_range = np.arange(adaptive_threshold - 0.02, adaptive_threshold + 0.02, 0.001)
         search_accuracies = []
         for threshold in search_range:
@@ -234,9 +234,9 @@ class MultiCLIPHandler:
         }
 
 def calculate_final_metrics(y_true, y_pred, similarities, threshold, strategy_name):
-    """Berechnet finale Metriken"""
+    """Calculates final metrics"""
     
-    # Basis-Metriken
+    # Basis metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -245,21 +245,21 @@ def calculate_final_metrics(y_true, y_pred, similarities, threshold, strategy_na
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
-    print(f"\n{strategy_name.upper()} STRATEGY - FINALE METRIKEN")
+    print(f"\n{strategy_name.upper()} STRATEGY - FINAL METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: Multi-CLIP Ensemble")
@@ -268,7 +268,7 @@ def calculate_final_metrics(y_true, y_pred, similarities, threshold, strategy_na
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Multi-CLIP, Adaptive Thresholding")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -311,7 +311,7 @@ def calculate_final_metrics(y_true, y_pred, similarities, threshold, strategy_na
     }
 
 def plot_final_results(all_metrics, threshold_analysis):
-    """Erstellt finale Visualisierungen"""
+    """Creates final visualizations"""
     
     strategies = list(all_metrics.keys())
     accuracies = [all_metrics[s]['accuracy'] for s in strategies]
@@ -372,9 +372,9 @@ def plot_final_results(all_metrics, threshold_analysis):
     plt.show()
 
 def main():
-    """Final CLIP Experiment für 84% Target"""
+    """Final CLIP Experiment for 84% Target"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "clip_final_attempt_results.csv"
@@ -388,7 +388,7 @@ def main():
     print(f"  - Adaptive thresholding")
     print(f"  - Weighted ensemble aggregation")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -397,15 +397,15 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # Multi-CLIP initialisieren
+    # Initialize Multi-CLIP
     clip = MultiCLIPHandler()
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     all_strategies = {}
     
@@ -418,7 +418,7 @@ def main():
         image = load_local_image(row['id'])
         similarity_dict = clip.predict_similarity_multi(row['clean_title'], image)
         
-        # Alle Strategien sammeln
+        # Collect all strategies
         for strategy_name, similarity in similarity_dict.items():
             if strategy_name not in all_strategies:
                 all_strategies[strategy_name] = []
@@ -432,7 +432,7 @@ def main():
             **similarity_dict
         })
     
-    # Adaptive Schwellenwert-Optimierung für jede Strategie
+    # Optimize adaptive thresholds for each strategy
     print(f"\n🎯 Finding adaptive thresholds for all strategies...")
     all_metrics = {}
     threshold_analysis = {}
@@ -441,10 +441,10 @@ def main():
         print(f"\n--- Optimizing {strategy_name} ---")
         true_labels = [r['true_label'] for r in results]
         
-        # Threshold-Optimierung
+        # Threshold optimization
         strategy_thresholds = clip.find_adaptive_threshold(similarities, true_labels)
         
-        # Verschiedene Thresholds testen
+        # Test different thresholds
         thresholds_to_test = [
             ('roc_threshold', strategy_thresholds['roc_threshold']),
             ('pr_threshold', strategy_thresholds['pr_threshold']),
@@ -464,7 +464,7 @@ def main():
             accuracy = accuracy_score(true_labels, predictions)
             print(f"  {name}: {accuracy:.3f} ({accuracy*100:.1f}%)")
             
-            # Speichere für Plot
+            # Store for plotting
             threshold_analysis[f'{strategy_name}_{name.split("_")[0]}_accuracy'] = accuracy
             
             if accuracy > best_accuracy:
@@ -475,29 +475,29 @@ def main():
         
         print(f"Best {strategy_name}: {best_threshold_name} = {best_threshold:.3f} -> {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
         
-        # Metriken berechnen
+        # Calculate metrics
         metrics = calculate_final_metrics(true_labels, best_predictions, similarities, best_threshold, strategy_name)
         all_metrics[strategy_name] = metrics
     
-    # Beste Strategie finden
+    # Find best strategy
     best_strategy = max(all_metrics.keys(), key=lambda x: all_metrics[x]['accuracy'])
     best_accuracy = all_metrics[best_strategy]['accuracy']
     
-    print(f"\n🏆 BESTE STRATEGIE: {best_strategy}")
-    print(f"🎯 BESTE ACCURACY: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
+    print(f"\n🏆 BEST STRATEGY: {best_strategy}")
+    print(f"🎯 BEST ACCURACY: {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Vergleich mit 82% Baseline
+    # Compare with 82% baseline
     baseline_accuracy = 0.82
     improvement = best_accuracy - baseline_accuracy
     
     if improvement > 0:
-        print(f"📈 VERBESSERUNG: +{improvement:.3f} (+{improvement*100:.1f}%) über 82% Baseline")
+        print(f"📈 IMPROVEMENT: +{improvement:.3f} (+{improvement*100:.1f}%) over 82% baseline")
     elif improvement < 0:
-        print(f"📉 RÜCKSCHRITT: {improvement:.3f} ({improvement*100:.1f}%) unter 82% Baseline")
+        print(f"📉 REGRESSION: {improvement:.3f} ({improvement*100:.1f}%) under 82% baseline")
     else:
-        print(f"📊 GLEICH: Keine Änderung zur 82% Baseline")
+        print(f"📊 NO CHANGE: No change to 82% baseline")
     
-    # Finale Predictions setzen
+    # Set final predictions
     best_similarities = all_strategies[best_strategy]
     best_threshold = all_metrics[best_strategy]['threshold']
     
@@ -506,12 +506,12 @@ def main():
         r['best_strategy'] = best_strategy
         r['best_threshold'] = best_threshold
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "clip_final_attempt_metrics.json"
     metrics_dict = {}
@@ -532,7 +532,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating final visualizations...")
     plot_final_results(all_metrics, threshold_analysis)
     

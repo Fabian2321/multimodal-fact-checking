@@ -11,14 +11,14 @@ if not logger.handlers: # Configure only if no handlers are already attached (e.
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # --- Logging Setup ---
-def setup_logger(name='mllm_project', level=logging.INFO, log_file='logs/mllm.log', file_mode='a'):
+def setup_logger(name='mllm_project', level=logging.INFO, log_file=None, file_mode='a'):
     """
-    Sets up a custom logger.
+    Sets up a custom logger with unified log directory.
 
     Args:
         name (str): Name of the logger.
         level (int): Logging level (e.g., logging.INFO, logging.DEBUG).
-        log_file (str, optional): Path to a file to save logs. If None, logs to console only.
+        log_file (str, optional): Specific log file name. If None, uses 'mllm.log'.
         file_mode (str): Mode to open log file ('a' for append, 'w' for write).
 
     Returns:
@@ -37,17 +37,38 @@ def setup_logger(name='mllm_project', level=logging.INFO, log_file='logs/mllm.lo
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
-        # File handler (optional)
-        if log_file:
-            # Create directory for log file if it doesn't exist
-            log_dir = os.path.dirname(log_file)
-            if log_dir and not os.path.exists(log_dir):
-                os.makedirs(log_dir, exist_ok=True)
-            
-            fh = logging.FileHandler(log_file, mode=file_mode)
-            fh.setLevel(level)
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
+        # File handler - always use unified log directory
+        if log_file is None:
+            log_file = 'mllm.log'
+        
+        # Determine project root and create unified log path
+        # Try to find the project root by looking for README.md or .git
+        current_dir = os.getcwd()
+        project_root = current_dir
+        
+        # Look for project root indicators
+        while current_dir != os.path.dirname(current_dir):  # Stop at filesystem root
+            if os.path.exists(os.path.join(current_dir, 'README.md')) or \
+               os.path.exists(os.path.join(current_dir, '.git')):
+                project_root = current_dir
+                break
+            current_dir = os.path.dirname(current_dir)
+        
+        # Create unified log directory at project root
+        unified_log_dir = os.path.join(project_root, 'logs')
+        unified_log_file = os.path.join(unified_log_dir, log_file)
+        
+        # Create directory for log file if it doesn't exist
+        if not os.path.exists(unified_log_dir):
+            os.makedirs(unified_log_dir, exist_ok=True)
+        
+        fh = logging.FileHandler(unified_log_file, mode=file_mode)
+        fh.setLevel(level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        
+        # Log the unified log location for debugging
+        logger.debug(f"Logging to unified location: {unified_log_file}")
             
     return logger
 

@@ -1,13 +1,13 @@
 # Documentation Overview
 
-Dieses Verzeichnis enthält alle wichtigen Dokumente, Berichte und Konfigurationsdateien für das Projekt.
+This directory contains all important documents, reports, and configuration files for the project.
 
-## Struktur
+## Structure
 
-- **FINAL_REPORT.md**: Ausführlicher Abschlussbericht mit allen Ergebnissen, Analysen und Empfehlungen
-- **COLAB_SETUP.md**: Anleitung zur Einrichtung und Nutzung der Google Colab-Umgebung
-- **experiment_configurations.md**: Übersicht und Beschreibung der wichtigsten Experiment-Konfigurationen
+- **FINAL_REPORT.md**: Comprehensive final report with all results, analyses, and recommendations
+- **COLAB_SETUP.md**: Guide for setting up and using the Google Colab environment
+- **experiment_configurations.md**: Overview and description of the most important experiment configurations
 
-## Hinweise
-- Die Dokumente dienen als zentrale Referenz für Ergebnisse, Setup und Reproduzierbarkeit.
-- Für technische Details und Code siehe die Hauptordner im Projekt. 
+## Notes
+- The documents serve as central reference for results, setup, and reproducibility.
+- For technical details and code, see the main directories in the project. 

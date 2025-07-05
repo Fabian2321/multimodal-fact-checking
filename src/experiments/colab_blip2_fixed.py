@@ -1,5 +1,5 @@
 # --- COLAB BLIP2 FIXED - 75%+ TARGET ---
-# Korrigierte BLIP2 Version mit funktionierendem Prompt 5
+# Fixed BLIP2 version with working prompt 5
 
 import os
 import glob
@@ -16,7 +16,7 @@ import re
 import time
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -26,52 +26,52 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_fixed_prompt(text: str) -> str:
-    """Funktionierender Prompt 5 für Fake News Detection"""
-    # Basis-Cleaning
+    """Working prompt 5 for fake news detection"""
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Prompt 5: Fake News Detection (funktioniert am besten)
+    # Prompt 5: Fake News Detection (works best)
     prompt = f"Question: Is this image fake news or real news? Caption: {text} Answer:"
     return prompt
 
 def parse_blip2_response_fixed(response: str) -> float:
-    """Korrigiertes BLIP2 Response-Parsing für Fake News Detection"""
+    """Fixed BLIP2 response parsing for fake news detection"""
     response = response.lower().strip()
     
-    # Entferne den Prompt-Teil aus der Antwort
+    # Remove prompt part from response
     if "answer:" in response:
         response = response.split("answer:")[-1].strip()
     
-    # Fake News Indikatoren
+    # Fake news indicators
     fake_indicators = [
         'fake news', 'fake', 'false', 'misleading', 'manipulated', 
         'photoshopped', 'edited', 'not real', 'artificial', 'staged'
     ]
     
-    # Real News Indikatoren
+    # Real news indicators
     real_indicators = [
         'real news', 'real', 'true', 'authentic', 'genuine', 
         'actual', 'legitimate', 'verified', 'confirmed', 'it\'s real'
     ]
     
-    # Zähle Indikatoren
+    # Count indicators
     fake_count = sum(1 for indicator in fake_indicators if indicator in response)
     real_count = sum(1 for indicator in real_indicators if indicator in response)
     
-    # Scoring basierend auf Indikatoren
+    # Scoring based on indicators
     if fake_count > real_count:
-        return 0.2  # Wahrscheinlich Fake
+        return 0.2  # Likely fake
     elif real_count > fake_count:
-        return 0.8  # Wahrscheinlich Real
+        return 0.8  # Likely real
     else:
-        # Fallback: Länge und Wörter analysieren
+        # Fallback: analyze length and words
         words = response.split()
         if len(words) < 3:
-            return 0.5  # Kurze Antwort = neutral
+            return 0.5  # Short answer = neutral
         
-        # Spezielle Wörter suchen
+        # Look for special words
         if any(word in response for word in ['yes', 'correct', 'accurate']):
             return 0.7
         elif any(word in response for word in ['no', 'wrong', 'incorrect']):
@@ -81,11 +81,11 @@ def parse_blip2_response_fixed(response: str) -> float:
 
 class FixedBLIP2Handler:
     def __init__(self):
-        """Korrigierter BLIP2 Handler"""
+        """Fixed BLIP2 handler"""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         
-        # BLIP2 Model laden
+        # Load BLIP2 model
         print("Loading BLIP2 model: Salesforce/blip2-opt-2.7b")
         self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
         self.model = Blip2ForConditionalGeneration.from_pretrained(
@@ -95,17 +95,17 @@ class FixedBLIP2Handler:
         print("BLIP2 model loaded successfully!")
 
     def predict_fixed(self, text: str, image: Image.Image) -> Dict[str, Any]:
-        """Korrigierte Prediction mit funktionierendem Prompt"""
+        """Fixed prediction with working prompt"""
         
-        # Nur der funktionierende Prompt
+        # Only the working prompt
         prompt = create_fixed_prompt(text)
         
-        # Nur Original-Bild (keine Multi-Crop)
+        # Only original image (no multi-crop)
         crops = [image]
         
         all_scores = []
         
-        # Für jeden Crop
+        # For each crop
         for crop in crops:
             try:
                 inputs = self.processor(
@@ -132,7 +132,7 @@ class FixedBLIP2Handler:
                 print(f"Error in prediction: {e}")
                 all_scores.append(0.5)
         
-        # Einfache Aggregation
+        # Simple aggregation
         final_score = np.mean(all_scores) if all_scores else 0.5
         
         return {
@@ -142,22 +142,22 @@ class FixedBLIP2Handler:
         }
 
     def find_optimal_threshold(self, scores: list, true_labels: list) -> Dict[str, float]:
-        """Optimale Schwellenwert-Optimierung"""
+        """Optimal threshold optimization"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, scores)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, scores)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
         best_pr_idx = np.argmax(f1_scores[:-1])
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(score >= threshold) for score in scores]
@@ -185,9 +185,9 @@ class FixedBLIP2Handler:
         }
 
 def calculate_fixed_metrics(y_true, y_pred, scores, threshold):
-    """Berechnet Metriken für korrigierte BLIP2"""
+    """Calculates metrics for fixed BLIP2"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -196,22 +196,22 @@ def calculate_fixed_metrics(y_true, y_pred, scores, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, scores)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Score-Statistiken
+    # Score statistics
     pos_scores = [s for s, l in zip(scores, y_true) if l == 1]
     neg_scores = [s for s, l in zip(scores, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("FIXED BLIP2 EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("FIXED BLIP2 EXPERIMENT - FULL METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: Salesforce/blip2-opt-2.7b")
@@ -220,7 +220,7 @@ def calculate_fixed_metrics(y_true, y_pred, scores, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Fixed Prompt 5 (Fake News Detection)")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")
@@ -262,7 +262,7 @@ def calculate_fixed_metrics(y_true, y_pred, scores, threshold):
     }
 
 def plot_fixed_results(metrics, threshold_analysis):
-    """Erstellt Visualisierungen für korrigierte BLIP2"""
+    """Creates visualizations for fixed BLIP2"""
     
     # Confusion Matrix
     plt.figure(figsize=(15, 5))
@@ -304,9 +304,9 @@ def plot_fixed_results(metrics, threshold_analysis):
     plt.show()
 
 def main():
-    """Korrigiertes BLIP2 Experiment für 75%+ Target"""
+    """Fixed BLIP2 experiment for 75%+ target"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
     NUM_SAMPLES = 100
     OUTPUT_FILE = "colab_blip2_fixed_results.csv"
@@ -320,7 +320,7 @@ def main():
     print(f"  - Single crop: No multi-crop complexity")
     print(f"  - Based on debug analysis")
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -329,18 +329,18 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples")
     
-    # BLIP2 initialisieren
+    # Initialize BLIP2
     start_time = time.time()
     blip2 = FixedBLIP2Handler()
     init_time = time.time() - start_time
     print(f"⏱️ Model initialization: {init_time:.2f}s")
     
-    # Predictions durchführen
+    # Perform predictions
     results = []
     scores = []
     
@@ -368,13 +368,13 @@ def main():
     pred_time = time.time() - pred_start_time
     print(f"⏱️ Prediction time: {pred_time:.2f}s ({pred_time/len(df):.3f}s per sample)")
     
-    # Schwellenwert-Optimierung
+    # Threshold optimization
     print(f"\n🎯 Finding optimal threshold for fixed BLIP2...")
     true_labels = [r['true_label'] for r in results]
     
     threshold_analysis = blip2.find_optimal_threshold(scores, true_labels)
     
-    # Verschiedene Thresholds testen
+    # Test different thresholds
     thresholds_to_test = [
         ('roc_threshold', threshold_analysis['roc_threshold']),
         ('pr_threshold', threshold_analysis['pr_threshold']),
@@ -400,20 +400,20 @@ def main():
     
     print(f"Best fixed BLIP2: {best_threshold_name} = {best_threshold:.3f} -> {best_accuracy:.3f} ({best_accuracy*100:.1f}%)")
     
-    # Metriken berechnen
+    # Calculate metrics
     metrics = calculate_fixed_metrics(true_labels, best_predictions, scores, best_threshold)
     
-    # Finale Predictions setzen
+    # Set final predictions
     for r in results:
         r['predicted_label'] = int(r['blip2_score'] >= best_threshold)
         r['threshold'] = best_threshold
     
-    # Ergebnisse speichern
+    # Save results
     results_df = pd.DataFrame(results)
     results_df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n💾 Results saved to {OUTPUT_FILE}")
     
-    # Metriken als JSON speichern
+    # Save metrics as JSON
     import json
     metrics_file = "colab_blip2_fixed_metrics.json"
     metrics_dict = {
@@ -441,7 +441,7 @@ def main():
         json.dump(metrics_dict, f, indent=2)
     print(f"📊 Metrics saved to {metrics_file}")
     
-    # Visualisierungen erstellen
+    # Create visualizations
     print(f"\n📈 Creating fixed BLIP2 visualizations...")
     plot_fixed_results(metrics, threshold_analysis)
     
@@ -450,7 +450,7 @@ def main():
     print(f"🎉 Achieved {best_accuracy*100:.1f}% accuracy!")
     print(f"⏱️ Total time: {total_time:.2f}s")
     
-    # Vergleich mit vorherigen BLIP2 Versionen
+    # Comparison with previous BLIP2 versions
     previous_blip2 = 0.50
     improvement = best_accuracy - previous_blip2
     
@@ -468,11 +468,11 @@ def main():
         print(f"💡 BLIP2 might not be optimal for this task")
     
     if improvement > 0:
-        print(f"📈 VERBESSERUNG: +{improvement:.3f} (+{improvement*100:.1f}%) über vorherigem BLIP2")
+        print(f"📈 IMPROVEMENT: +{improvement:.3f} (+{improvement*100:.1f}%) over previous BLIP2")
     elif improvement < 0:
-        print(f"📉 RÜCKSCHRITT: {improvement:.3f} ({improvement*100:.1f}%) unter vorherigem BLIP2")
+        print(f"📉 REGRESSION: {improvement:.3f} ({improvement*100:.1f}%) under previous BLIP2")
     else:
-        print(f"📊 GLEICH: Keine Änderung zum vorherigen BLIP2")
+        print(f"📊 EQUAL: No change to previous BLIP2")
     
     print(f"\n📋 Fixed BLIP2 Summary:")
     print(f"  - Model: Salesforce/blip2-opt-2.7b")

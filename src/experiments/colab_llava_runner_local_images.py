@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class LLaVAAnswerParser:
-    """Parser für LLaVA-Ausgaben, 'Yes' nur ohne Unsicherheitswörter als positiv"""
+    """Parser for LLaVA outputs, 'Yes' only without uncertainty words as positive"""
     def extract_prediction(self, generated_text: str) -> tuple[int, float, str]:
         text = generated_text.lower().strip()
         if text.startswith('yes'):
@@ -47,7 +47,7 @@ class ColabLLaVARunner:
         self.processor = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        # Prompt: 'Yes' nur bei klarer, spezifischer Übereinstimmung
+        # Prompt: 'Yes' only for clear, specific matches
         self.prompt_template = """USER: <image>\nText: '{text}'\nMetadata: {metadata}\nDoes the text accurately describe the image and metadata? Answer 'Yes' only if the text clearly and specifically matches the image and metadata. If you are unsure or the match is only partial or vague, answer 'No'. Start your answer with 'Yes' or 'No' and provide a short explanation.\nASSISTANT:"""
         
         logger.info(f"Initializing LLaVA runner with device: {self.device}")

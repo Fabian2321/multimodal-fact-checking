@@ -1,47 +1,47 @@
 # src/ – Multimodal Fact-Checking Source Code
 
-Dieses Verzeichnis enthält den vollständigen, modularen Quellcode für das Multimodal Fact-Checking Projekt.
+This directory contains the complete, modular source code for the Multimodal Fact-Checking project.
 
-## Struktur
+## Structure
 
 ```
-core/        # Kernfunktionen: Pipeline, Modelle, Daten, Utils
-models/      # Parser, Prompts, RAG-Handler
-ensemble/    # Ensemble-Methoden
-analysis/    # Analyse- und Auswertungs-Tools
-experiments/ # CLI-Experiment-Skripte (direkt ausführen)
-data/        # Knowledge Base (z.B. documents.json, faiss_index.bin)
-logs/        # Log-Dateien
+core/        # Core functions: Pipeline, Models, Data, Utils
+models/      # Parsers, Prompts, RAG-Handler
+ensemble/    # Ensemble methods
+analysis/    # Analysis and evaluation tools
+experiments/ # CLI experiment scripts (execute directly)
+data/        # Knowledge Base (e.g., documents.json, faiss_index.bin)
+logs/        # Log files
 ```
 
-## Hauptmodule & Funktionen
+## Main modules & functions
 
-- **core/**: Daten-Handling, Modell-Loader, Pipeline, Evaluation
-- **models/**: BLIP/LLaVA Parser, Prompts, RAG-Handler
-- **ensemble/**: EnsembleHandler für Modell-Kombinationen
-- **analysis/**: Tools für Auswertung, Backup, Cleanup
-- **experiments/**: CLI-Skripte für Experimente (nicht importieren, sondern direkt ausführen)
+- **core/**: Data handling, model loader, pipeline, evaluation
+- **models/**: BLIP/LLaVA parsers, prompts, RAG handler
+- **ensemble/**: EnsembleHandler for model combinations
+- **analysis/**: Tools for evaluation, backup, cleanup
+- **experiments/**: CLI scripts for experiments (do not import, execute directly)
 
-## Verwendung
+## Usage
 
-### Als Python-Modul
+### As Python module
 ```python
 from src import run_pipeline, BLIPAnswerParser, RAGHandler
 from src.core import FakedditDataset, setup_logger
 from src.models import BLIP_PROMPTS, LLAVA_PROMPTS
 ```
 
-### CLI-Skripte ausführen
+### Execute CLI scripts
 ```bash
 python src/experiments/test_llava_mini.py
 python src/analysis/cleanup_results.py
 ```
 
-## Hinweise
-- **Experiments** und **Analysis** enthalten CLI-Tools, die direkt ausgeführt werden.
-- Alle wichtigen Funktionen sind über das Hauptpaket `src` importierbar.
-- Die Knowledge Base liegt in `src/data/knowledge_base/`.
+## Notes
+- **Experiments** and **Analysis** contain CLI tools that are executed directly.
+- All important functions are importable via the main package `src`.
+- The knowledge base is located in `src/data/knowledge_base/`.
 
 ---
 
-**Letzte Migration:** Juli 2025 – Struktur modularisiert, Altlasten entfernt, alle Funktionen getestet. 
+**Last migration:** July 2025 – Structure modularized, legacy code removed, all functions tested. 

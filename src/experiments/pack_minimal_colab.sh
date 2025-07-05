@@ -1,6 +1,6 @@
 #!/bin/bash
-# Minimales Colab-Archiv bauen
-# Nur relevante Dateien und Daten werden gepackt
+# Build minimal Colab archive
+# Only relevant files and data are packed
 
 set -e
 
@@ -17,15 +17,15 @@ SRC_DIR="drive_export/mllm_colab"
 TMP_DIR="/tmp/mllm_colab_minimal"
 ARCHIVE="mllm_colab_minimal.tar.gz"
 
-# 1. Vorherigen Temp-Ordner löschen
+# 1. Delete previous temp directory
 rm -rf "$TMP_DIR"
 
-# 2. Minimalstruktur anlegen
+# 2. Create minimal structure
 mkdir -p "$TMP_DIR/data/downloaded_fakeddit_images"
 mkdir -p "$TMP_DIR/data/processed"
 mkdir -p "$TMP_DIR/data/external_knowledge"
 
-# 3. Hauptskripte und Konfig kopieren
+# 3. Copy main scripts and config
 cp "$SRC_DIR/run_llava_experiment.py" "$TMP_DIR/"
 cp "$SRC_DIR/quick_test.py" "$TMP_DIR/"
 cp "$SRC_DIR/colab_quick_setup.py" "$TMP_DIR/"
@@ -33,19 +33,19 @@ cp "$SRC_DIR/README_COLAB.md" "$TMP_DIR/"
 cp "$SRC_DIR/llava_experiments.json" "$TMP_DIR/"
 cp "$SRC_DIR/requirements_colab.txt" "$TMP_DIR/"
 
-# 4. Testdaten kopieren
+# 4. Copy test data
 cp "$SRC_DIR/data/processed/test_balanced_pairs.csv" "$TMP_DIR/data/processed/"
 
-# 5. Externe Knowledge kopieren
+# 5. Copy external knowledge
 cp "$SRC_DIR/data/external_knowledge/"*.json "$TMP_DIR/data/external_knowledge/"
 
-# 6. Bilder (hier: alle, ggf. anpassen für kleine Tests)
+# 6. Images (here: all, adjust for small tests if needed)
 cp "$SRC_DIR/data/downloaded_fakeddit_images/"*.jpg "$TMP_DIR/data/downloaded_fakeddit_images/"
 
-# 7. Optional: weitere kleine Dateien kopieren (z.B. test_queries.json, falls benötigt)
+# 7. Optional: copy additional small files (e.g., test_queries.json if needed)
 # cp "$SRC_DIR/data/test_queries.json" "$TMP_DIR/data/"
 
-# 8. Archiv bauen
+# 8. Build archive
 cd /tmp
 rm -f "$ARCHIVE"
 
@@ -58,14 +58,14 @@ fi
 
 mv "$ARCHIVE" "$OLDPWD/"
 
-# 9. Aufräumen
+# 9. Cleanup
 rm -rf "$TMP_DIR"
 
-# 10. Fertig
+# 10. Done
 cd "$OLDPWD"
-echo "FERTIG: $ARCHIVE bereit für Upload in Colab!"
-echo "Enthält:"
-echo "- Verbesserte LLaVA Experiment-Skripte"
-echo "- Quick Test für Setup-Verifikation"
-echo "- Alle Testdaten und Bilder"
-echo "- Requirements-Datei" 
+echo "DONE: $ARCHIVE ready for upload to Colab!"
+echo "Contains:"
+echo "- Improved LLaVA experiment scripts"
+echo "- Quick test for setup verification"
+echo "- All test data and images"
+echo "- Requirements file" 

@@ -17,6 +17,12 @@ from .model_handler import (
 from .data_loader import FakedditDataset
 from .evaluation import evaluate_model_outputs, compute_qualitative_stats, save_metrics_table
 from .utils import setup_logger
+from .logging_config import (
+    get_experiment_logger,
+    get_rag_logger, 
+    get_error_logger,
+    get_main_logger
+)
 
 __all__ = [
     'run_pipeline',
@@ -32,5 +38,9 @@ __all__ = [
     'evaluate_model_outputs',
     'compute_qualitative_stats',
     'save_metrics_table',
-    'setup_logger'
+    'setup_logger',
+    'get_experiment_logger',
+    'get_rag_logger',
+    'get_error_logger', 
+    'get_main_logger'
 ] 

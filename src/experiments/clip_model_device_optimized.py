@@ -1,5 +1,5 @@
 # --- CLIP MODEL + DEVICE OPTIMIZED - 85% TARGET ---
-# Verschiedene CLIP-Modelle + A100-Optimierungen + Mixed Precision
+# Various CLIP models + A100 optimizations + Mixed Precision
 
 import os
 import glob
@@ -24,7 +24,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -34,24 +34,24 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_optimal_text_variants(text: str) -> List[str]:
-    """Optimale Text-Varianten - bewährte 3 Varianten"""
+    """Optimal text variants - proven 3 variants"""
     variants = []
     
-    # Basis-Cleaning
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Variante 1: Original (bereinigt) - BEWÄHRT
+    # Variant 1: Original (cleaned) - PROVEN
     variants.append(text)
     
-    # Variante 2: Kürzere Version (nur erste 4 Wörter) - OPTIMIERT
+    # Variant 2: Shorter version (first 4 words) - OPTIMIZED
     words = text.split()
     if len(words) > 3:
         short_variant = ' '.join(words[:4])
         variants.append(short_variant)
     
-    # Variante 3: Selektive Stop-Wort-Entfernung - BEWÄHRT
+    # Variant 3: Selective stopword removal - PROVEN
     stop_words = set(stopwords.words('english'))
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
@@ -63,16 +63,16 @@ def create_optimal_text_variants(text: str) -> List[str]:
     return list(set(variants))
 
 def create_optimal_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Image]:
-    """Optimale Multi-Crop - bewährte 3 Crops"""
-    crops = [image]  # Original immer dabei
+    """Optimal multi-crop - proven 3 crops"""
+    crops = [image]  # Always include original
     
     if num_crops > 1:
         width, height = image.size
-        # Center crop (bewährt)
+        # Center crop (proven)
         center_crop = image.crop((width//4, height//4, 3*width//4, 3*height//4))
         crops.append(center_crop)
         
-        # Quadratischer Crop aus der Mitte (bewährt)
+        # Square crop from center (proven)
         if num_crops > 2:
             min_dim = min(width, height)
             start_x = (width - min_dim) // 2
@@ -84,16 +84,16 @@ def create_optimal_crops(image: Image.Image, num_crops: int = 3) -> List[Image.I
 
 class OptimizedCLIPHandler:
     def __init__(self):
-        """Optimierter CLIP Handler mit verschiedenen Modellen und A100-Optimierungen"""
+        """Optimized CLIP handler with various models and A100 optimizations"""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         
-        # A100-spezifische Optimierungen
+        # A100-specific optimizations
         if self.device == "cuda":
             print(f"GPU: {torch.cuda.get_device_name(0)}")
             print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
             
-            # Mixed Precision für A100
+            # Mixed Precision for A100
             self.use_amp = True
             self.scaler = torch.cuda.amp.GradScaler()
             print("✅ Mixed Precision (AMP) enabled for A100")
@@ -101,11 +101,11 @@ class OptimizedCLIPHandler:
             self.use_amp = False
             self.scaler = None
         
-        # CLIP Modelle laden - verschiedene Varianten
+        # Load CLIP models - various variants
         self.models = {}
         self.processors = {}
         
-        # Modelle: Verschiedene CLIP-Varianten für Ensemble
+        # Models: Different CLIP variants for ensemble
         model_configs = [
             ("openai/clip-vit-base-patch16", "base16"),
             ("openai/clip-vit-base-patch14", "base14"),
@@ -118,9 +118,9 @@ class OptimizedCLIPHandler:
                 self.processors[model_id] = CLIPProcessor.from_pretrained(model_name)
                 self.models[model_id] = CLIPModel.from_pretrained(model_name).to(self.device)
                 
-                # A100-Optimierungen
+                # A100 optimizations
                 if self.device == "cuda":
-                    self.models[model_id].half()  # FP16 für A100
+                    self.models[model_id].half()  # FP16 for A100
                 
                 print(f"✅ {model_name} loaded successfully!")
             except Exception as e:
@@ -132,24 +132,24 @@ class OptimizedCLIPHandler:
         print(f"✅ Loaded {len(self.models)} CLIP models")
 
     def predict_similarity_optimized(self, text: str, image: Image.Image) -> Dict[str, float]:
-        """Optimierte Similarity-Berechnung mit A100-Optimierungen"""
+        """Optimized similarity calculation with A100 optimizations"""
         
-        # Text-Varianten erstellen
+        # Create text variants
         text_variants = create_optimal_text_variants(text)
         
-        # Optimale Multi-Crop
+        # Optimal multi-crop
         crops = create_optimal_crops(image, 3)
         
         all_model_scores = {}
         
-        # Für jedes CLIP-Modell
+        # For each CLIP model
         for model_id, model in self.models.items():
             processor = self.processors[model_id]
             model_similarities = []
             
-            # Für jede Text-Variante
+            # For each text variant
             for text_variant in text_variants:
-                # Für jeden Crop
+                # For each crop
                 for crop in crops:
                     inputs = processor(
                         text=[text_variant], 
@@ -158,7 +158,7 @@ class OptimizedCLIPHandler:
                         padding=True
                     ).to(self.device)
                     
-                    # Mixed Precision für A100
+                    # Mixed Precision for A100
                     with torch.cuda.amp.autocast(enabled=self.use_amp):
                         with torch.no_grad():
                             outputs = model(**inputs)
@@ -167,19 +167,19 @@ class OptimizedCLIPHandler:
                             similarity = (image_embeds @ text_embeds.T).cpu().item()
                             model_similarities.append(similarity)
             
-            # Aggregation pro Modell (bewährt: Max + Mean)
+            # Aggregation per model (proven: Max + Mean)
             if model_similarities:
                 max_sim = max(model_similarities)
                 mean_sim = np.mean(model_similarities)
                 all_model_scores[model_id] = 0.7 * max_sim + 0.3 * mean_sim
         
-        # Ensemble-Aggregation mit Modell-spezifischen Gewichten
+        # Ensemble aggregation with model-specific weights
         if all_model_scores:
-            # Gewichtete Kombination (größere Modelle wichtiger)
+            # Weighted combination (larger models more important)
             weights = {
                 'base16': 0.3,
                 'base14': 0.3, 
-                'large14': 0.4  # Größeres Modell bekommt mehr Gewicht
+                'large14': 0.4  # Larger model gets more weight
             }
             
             ensemble_score = 0
@@ -187,7 +187,7 @@ class OptimizedCLIPHandler:
                 weight = weights.get(model_id, 0.33)
                 ensemble_score += score * weight
             
-            # Normalisierung
+            # Normalization
             total_weight = sum(weights.get(model_id, 0.33) for model_id in all_model_scores.keys())
             ensemble_score /= total_weight
             

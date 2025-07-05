@@ -1,5 +1,5 @@
 # --- DEBUG BLIP2 RESPONSES ---
-# Analysiert was BLIP2 wirklich antwortet
+# Analyzes what BLIP2 actually responds
 
 import os
 import glob
@@ -11,7 +11,7 @@ import re
 from typing import List
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -21,15 +21,15 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def create_debug_prompts(text: str) -> List[str]:
-    """Debug-Prompts um BLIP2 Antworten zu analysieren"""
+    """Debug prompts to analyze BLIP2 responses"""
     prompts = []
     
-    # Basis-Cleaning
+    # Basic cleaning
     text = text.lower().strip()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Verschiedene Prompt-Typen testen
+    # Test different prompt types
     prompts.append(f"Question: Does this image match the text '{text}'? Answer yes or no. Answer:")
     prompts.append(f"Question: Is this image related to '{text}'? Answer yes or no. Answer:")
     prompts.append(f"Question: Is the text '{text}' true based on this image? Answer yes or no. Answer:")
@@ -44,7 +44,7 @@ class DebugBLIP2Handler:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         
-        # BLIP2 Model laden
+        # Load BLIP2 model
         print("Loading BLIP2 model: Salesforce/blip2-opt-2.7b")
         self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
         self.model = Blip2ForConditionalGeneration.from_pretrained(
@@ -54,7 +54,7 @@ class DebugBLIP2Handler:
         print("BLIP2 model loaded successfully!")
 
     def debug_responses(self, text: str, image: Image.Image, num_samples: int = 5):
-        """Debug BLIP2 Responses für verschiedene Prompts"""
+        """Debug BLIP2 responses for different prompts"""
         
         prompts = create_debug_prompts(text)
         
@@ -86,7 +86,7 @@ class DebugBLIP2Handler:
                 response = self.processor.decode(outputs[0], skip_special_tokens=True)
                 print(f"🤖 BLIP2 Response: '{response}'")
                 
-                # Response-Analyse
+                # Response analysis
                 response_lower = response.lower()
                 print(f"📊 Response Analysis:")
                 print(f"  - Contains 'yes': {'yes' in response_lower}")
@@ -98,7 +98,7 @@ class DebugBLIP2Handler:
                 print(f"❌ Error: {e}")
 
     def analyze_response_type(self, response: str) -> str:
-        """Analysiert den Typ der BLIP2 Antwort"""
+        """Analyzes the type of BLIP2 response"""
         response_lower = response.lower()
         
         if 'yes' in response_lower and 'no' not in response_lower:
@@ -117,16 +117,16 @@ class DebugBLIP2Handler:
             return "DESCRIPTIVE_RESPONSE"
 
 def main():
-    """Debug BLIP2 Responses"""
+    """Debug BLIP2 responses"""
     
-    # Parameter
+    # Parameters
     CSV_FILE = "test_balanced_pairs_clean.csv"
-    NUM_SAMPLES = 5  # Nur 5 Samples für Debug
+    NUM_SAMPLES = 5  # Only 5 samples for debug
     
     print("Debug BLIP2 Responses")
     print("="*30)
     
-    # Datei-Checks
+    # File checks
     if not os.path.exists(CSV_FILE):
         print(f"❌ CSV file {CSV_FILE} not found!")
         return
@@ -135,15 +135,15 @@ def main():
         print("❌ colab_images folder not found!")
         return
     
-    # Daten laden
+    # Load data
     print(f"📊 Loading data from {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE).head(NUM_SAMPLES)
     print(f"✅ Loaded {len(df)} samples for debugging")
     
-    # BLIP2 initialisieren
+    # Initialize BLIP2
     blip2 = DebugBLIP2Handler()
     
-    # Debug für jedes Sample
+    # Debug for each sample
     for idx, row in df.iterrows():
         print(f"\n{'='*80}")
         print(f"🔍 DEBUGGING SAMPLE {idx+1}/{len(df)}")
@@ -155,7 +155,7 @@ def main():
         image = load_local_image(row['id'])
         blip2.debug_responses(row['clean_title'], image)
         
-        if idx >= 4:  # Nur erste 5 Samples
+        if idx >= 4:  # Only first 5 samples
             break
     
     print(f"\n✅ Debug completed!")

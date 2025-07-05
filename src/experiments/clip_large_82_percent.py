@@ -1,5 +1,5 @@
 # --- CLIP-LARGE 82% TARGET ---
-# Bewährtes 82% Setup mit CLIP-Large für bessere Performance
+# Proven 82% setup with CLIP-Large for better performance
 
 import os
 import glob
@@ -23,7 +23,7 @@ except LookupError:
     nltk.download('stopwords')
 
 def load_local_image(image_id: str) -> Image.Image:
-    """Lädt lokale Bilder aus colab_images/ Ordner"""
+    """Loads local images from colab_images/ folder"""
     image_pattern = os.path.join("colab_images", f"{image_id}.*")
     matching_files = glob.glob(image_pattern)
     if matching_files:
@@ -33,32 +33,32 @@ def load_local_image(image_id: str) -> Image.Image:
         return Image.new('RGB', (224, 224), color='gray')
 
 def preprocess_text(text: str) -> str:
-    """Bewährtes Text-Preprocessing für 82% Performance"""
-    # Basis-Cleaning
+    """Proven text preprocessing for 82% performance"""
+    # Basic cleaning
     text = text.lower().strip()
     
-    # Entferne URLs
+    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
     
-    # Entferne spezielle Zeichen, behalte wichtige
+    # Remove special characters, keep important ones
     text = re.sub(r'[^\w\s\-\.\,\!\?]', '', text)
     
-    # Entferne Stop-Wörter (selektiv)
+    # Remove stop words (selective)
     stop_words = set(stopwords.words('english'))
-    # Wichtige Wörter beibehalten
+    # Keep important words
     important_words = {'fake', 'real', 'true', 'false', 'news', 'image', 'photo', 'picture', 'video'}
     words = text.split()
     filtered_words = [word for word in words if word not in stop_words or word in important_words]
     
-    # Mindestlänge sicherstellen
+    # Ensure minimum length
     if len(filtered_words) < 2:
         filtered_words = words[:3]  # Fallback
     
     return ' '.join(filtered_words)
 
 def create_image_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Image]:
-    """Bewährte Multi-Crop für 82% Performance"""
-    crops = [image]  # Original immer dabei
+    """Proven multi-crop for 82% performance"""
+    crops = [image]  # Original always included
     
     if num_crops > 1:
         width, height = image.size
@@ -79,7 +79,7 @@ def create_image_crops(image: Image.Image, num_crops: int = 3) -> List[Image.Ima
 
 class CLIPLargeHandler:
     def __init__(self):
-        """CLIP-Large Handler mit bewährten 82% Optimierungen"""
+        """CLIP-Large Handler with proven 82% optimizations"""
         self.model_name = "openai/clip-vit-large-patch14"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -90,11 +90,11 @@ class CLIPLargeHandler:
         print("CLIP-Large model loaded successfully!")
 
     def predict_similarity_robust(self, text: str, image: Image.Image, num_crops: int = 3) -> float:
-        """Bewährte Similarity-Berechnung mit Multi-Crop"""
-        # Text-Preprocessing
+        """Proven similarity calculation with multi-crop"""
+        # Text preprocessing
         processed_text = preprocess_text(text)
         
-        # Multi-Crop Predictions
+        # Multi-crop predictions
         crops = create_image_crops(image, num_crops)
         similarities = []
         
@@ -113,28 +113,28 @@ class CLIPLargeHandler:
                 similarity = (image_embeds @ text_embeds.T).cpu().item()
                 similarities.append(similarity)
         
-        # Bewährte Aggregation: Max + Mean
+        # Proven aggregation: Max + Mean
         max_sim = max(similarities)
         mean_sim = np.mean(similarities)
-        return 0.7 * max_sim + 0.3 * mean_sim  # Gewichtete Kombination
+        return 0.7 * max_sim + 0.3 * mean_sim  # Weighted combination
 
     def find_optimal_threshold_advanced(self, similarities: list, true_labels: list) -> Dict[str, float]:
-        """Bewährte Schwellenwert-Optimierung für 82% Performance"""
+        """Proven threshold optimization for 82% performance"""
         from sklearn.metrics import roc_curve, precision_recall_curve
         
-        # ROC-basierte Optimierung
+        # ROC-based optimization
         fpr, tpr, roc_thresholds = roc_curve(true_labels, similarities)
         j_scores = tpr - fpr
         best_roc_idx = np.argmax(j_scores)
         roc_threshold = roc_thresholds[best_roc_idx]
         
-        # Precision-Recall Optimierung
+        # Precision-Recall optimization
         precision, recall, pr_thresholds = precision_recall_curve(true_labels, similarities)
         f1_scores = 2 * (precision * recall) / (precision + recall + 1e-8)
-        best_pr_idx = np.argmax(f1_scores[:-1])  # Letzte Precision ist 1.0
+        best_pr_idx = np.argmax(f1_scores[:-1])  # Last precision is 1.0
         pr_threshold = pr_thresholds[best_pr_idx]
         
-        # Balanced Accuracy Optimierung
+        # Balanced Accuracy optimization
         balanced_accuracies = []
         for threshold in roc_thresholds:
             predictions = [int(sim >= threshold) for sim in similarities]
@@ -162,9 +162,9 @@ class CLIPLargeHandler:
         }
 
 def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
-    """Berechnet alle wichtigen Metriken für CLIP-Large"""
+    """Calculates all important metrics for CLIP-Large"""
     
-    # Basis-Metriken
+    # Basic metrics
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
@@ -173,22 +173,22 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     # Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # ROC und AUC
+    # ROC and AUC
     fpr, tpr, _ = roc_curve(y_true, similarities)
     roc_auc = auc(fpr, tpr)
     
-    # Per-Class Metriken
+    # Per-Class metrics
     tn, fp, fn, tp = cm.ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     balanced_accuracy = (specificity + sensitivity) / 2
     
-    # Similarity-Statistiken
+    # Similarity statistics
     pos_similarities = [s for s, l in zip(similarities, y_true) if l == 1]
     neg_similarities = [s for s, l in zip(similarities, y_true) if l == 0]
     
     print("\n" + "="*60)
-    print("CLIP-LARGE EXPERIMENT - VOLLSTÄNDIGE METRIKEN")
+    print("CLIP-LARGE EXPERIMENT - COMPREHENSIVE METRICS")
     print("="*60)
     print(f"Setup:")
     print(f"  - Model: openai/clip-vit-large-patch14")
@@ -197,7 +197,7 @@ def calculate_comprehensive_metrics(y_true, y_pred, similarities, threshold):
     print(f"  - Threshold: {threshold:.3f}")
     print(f"  - Optimizations: Multi-crop, Text-preprocessing (82% proven)")
     
-    print(f"\nPerformance Metriken:")
+    print(f"\nPerformance Metrics:")
     print(f"  - Accuracy:  {accuracy:.3f} ({accuracy*100:.1f}%)")
     print(f"  - Precision: {precision:.3f}")
     print(f"  - Recall:    {recall:.3f}")

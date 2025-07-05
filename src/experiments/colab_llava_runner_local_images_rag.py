@@ -16,27 +16,27 @@ logger = logging.getLogger(__name__)
 
 # --- RAG Knowledge Base Loader ---
 def load_external_knowledge(knowledge_dir: str) -> List[str]:
-    """Lädt alle relevanten Textfelder aus allen .json-Dateien im Verzeichnis."""
+    """Loads all relevant text fields from all .json files in the directory."""
     knowledge_texts = []
     for file in glob.glob(os.path.join(knowledge_dir, '*.json')):
         with open(file, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            # Sammle alle Textfelder aus bekannten Strukturen
+            # Collect all text fields from known structures
             for key in data:
                 if isinstance(data[key], list):
                     for entry in data[key]:
-                        # Für Guidelines
+                        # For Guidelines
                         if 'text' in entry:
                             knowledge_texts.append(entry['text'])
-                        # Für Misconceptions
+                        # For Misconceptions
                         if 'misconception' in entry and 'correction' in entry:
                             knowledge_texts.append(f"MISCONCEPTION: {entry['misconception']} CORRECTION: {entry['correction']}")
     logger.info(f"Loaded {len(knowledge_texts)} knowledge entries from {knowledge_dir}")
     return knowledge_texts
 
-# --- LLaVA Answer Parser (wie vorher, für Klarheit) ---
+# --- LLaVA Answer Parser (as before, for clarity) ---
 class LLaVAAnswerParser:
-    """Parser für LLaVA-Ausgaben, 'Yes' nur ohne Unsicherheitswörter als positiv"""
+    """Parser for LLaVA outputs, 'Yes' only without uncertainty words as positive"""
     def extract_prediction(self, generated_text: str) -> tuple[int, float, str]:
         text = generated_text.lower().strip()
         if text.startswith('yes'):
@@ -48,18 +48,18 @@ class LLaVAAnswerParser:
             return 0, 0.95, "Model gave a negative or unclear response"
 
 def retrieve_relevant_knowledge(knowledge_texts: list, sample_text: str, top_k: int = 3) -> list:
-    """Einfache Relevanzsuche: Wähle die top_k Guidelines/Misconceptions mit den meisten Keyword-Überschneidungen zum Sample-Text."""
+    """Simple relevance search: Choose the top_k guidelines/misconceptions with the most keyword overlaps to the sample text."""
     sample_words = set(re.findall(r'\w+', sample_text.lower()))
     scored = []
     for entry in knowledge_texts:
         entry_words = set(re.findall(r'\w+', entry.lower()))
         score = len(sample_words & entry_words)
         scored.append((score, entry))
-    # Sortiere nach Score, dann nach Länge (kürzere bevorzugen bei Gleichstand)
+    # Sort by score, then by length (prefer shorter in case of tie)
     scored = sorted(scored, key=lambda x: (-x[0], len(x[1])))
     return [entry for score, entry in scored[:top_k] if score > 0] or scored[:top_k]
 
-# --- ColabLLaVARunner mit RAG ---
+# --- ColabLLaVARunner with RAG ---
 class ColabLLaVARunnerRAG:
     def __init__(self, model_name: str = "llava-hf/llava-1.5-7b-hf", knowledge_dir: str = "data/external_knowledge"):
         self.model_name = model_name
@@ -67,7 +67,7 @@ class ColabLLaVARunnerRAG:
         self.processor = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.knowledge_texts = load_external_knowledge(knowledge_dir)
-        # Prompt mit Additional Context
+        # Prompt with Additional Context
         self.prompt_template = (
             "USER: <image>\n"
             "Text: '{text}'\n"
@@ -114,7 +114,7 @@ class ColabLLaVARunnerRAG:
         try:
             image = self.load_local_image(row['id'])
             metadata = self.create_metadata_string(row)
-            # Relevante Guidelines/Misconceptions für dieses Sample auswählen
+            # Select relevant guidelines/misconceptions for this sample
             relevant_knowledge = retrieve_relevant_knowledge(self.knowledge_texts, row['clean_title'], top_k=3)
             additional_context = " \n".join(relevant_knowledge)
             prompt = self.prompt_template.format(

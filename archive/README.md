@@ -1,18 +1,18 @@
 # Archive Overview
 
-Dieses Verzeichnis enthält ältere, experimentelle oder selten genutzte Dateien und Skripte, die für die Entwicklung und Dokumentation des Projekts relevant sind. Die Inhalte sind thematisch in Unterordner gegliedert:
+This directory contains older, experimental, or rarely used files and scripts that are relevant for the development and documentation of the project. The contents are organized thematically in subdirectories:
 
-## Struktur
+## Structure
 
-- **notebooks/**: Jupyter-Notebooks für Analysen und Prototyping (z.B. LLAVA.ipynb)
-- **scripts/**: Python-Skripte für Experimente, Integration und Auswertung
-- **datasets/**: Skripte zur Erstellung, Bereinigung und Analyse von Datensätzen und Knowledge Bases
-- **colab/**: Colab-spezifische Skripte und Requirements für Cloud-Experimente
-- **images/**: Archivierte Bilddaten (z.B. Colab-Images, Backups)
-- **archives/**: Große Archivdateien und Backups (z.B. .tar.gz)
-- **configs/**: Markdown-Dateien mit Konfigurationen, Best Practices und Setup-Informationen
+- **notebooks/**: Jupyter notebooks for analysis and prototyping (e.g., LLAVA.ipynb)
+- **scripts/**: Python scripts for experiments, integration, and evaluation
+- **datasets/**: Scripts for creating, cleaning, and analyzing datasets and knowledge bases
+- **colab/**: Colab-specific scripts and requirements for cloud experiments
+- **images/**: Archived image data (e.g., Colab images, backups)
+- **archives/**: Large archive files and backups (e.g., .tar.gz)
+- **configs/**: Markdown files with configurations, best practices, and setup information
 
-## Hinweise
-- Die Dateien dienen als Referenz, Backup oder für spezielle Experimente.
-- Für die Hauptentwicklung und aktuelle Experimente siehe die Hauptordner im Projekt-Root.
-- Nicht alle Inhalte sind produktiv im Einsatz – bitte vor Nutzung prüfen! 
+## Notes
+- The files serve as reference, backup, or for special experiments.
+- For main development and current experiments, see the main directories in the project root.
+- Not all content is in productive use – please check before using! 
