@@ -71,22 +71,36 @@ coverage.xml
 # mkdocs documentation
 /site/
 
-# Data files - exclude large data directories
-data/downloaded_fakeddit_images/
-data/raw/
-data/processed/
-data/knowledge_base/
-data/optimization_results/
-data/test_queries.json
+# Data files - exclude all data subfolders and common data formats
+# (Allow only external_knowledge and README.md)
+data/*
+!data/external_knowledge/
+!data/README.md
 
 # Results and outputs
 results/
 logs/
 
-# Model checkpoints (if large and not using LFS)
-models/*.pth
-models/*.bin
-models/*.safetensors
+# Model checkpoints and all model files
+models/
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+
+# Exports, archives, and compressed files
+*.tar.gz
+*.zip
+*.7z
+
+# Notebook outputs/notebook cache
+notebooks/__pycache__/
+notebooks/*.pyc
+notebooks/*.ipynb_checkpoints
+
+# Drive exports (falls nicht versioniert)
+drive_export/
 
 # Logs
 *.log
@@ -99,3 +113,4 @@ models/*.safetensors
 .Trashes
 ehthumbs.db
 Thumbs.db
+src/data/knowledge_base/documents.json

@@ -126,4 +126,4 @@ zipp==3.21.0
 # RAG dependencies
 sentence-transformers>=2.2.2
 faiss-cpu>=1.7.4  # Use faiss-gpu if GPU is available
-numpy>=1.24.0
+nltk>=3.8.1
