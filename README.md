@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.7+-red.svg)](https://pytorch.org/)
 [![Transformers](https://img.shields.io/badge/Transformers-4.52+-yellow.svg)](https://huggingface.co/transformers/)
-[![Fakeddit](https://fakeddit.netlify.app)](https://fakeddit.netlify.app)  
+[![Fakeddit](https://img.shields.io/badge/Fakeddit-Dataset-green.svg)](https://fakeddit.netlify.app)
 
 A comprehensive research project implementing and evaluating state-of-the-art multimodal models for **text-image matching** in fact-checking applications using the Fakeddit dataset. This project explores CLIP, BLIP2, LLaVA, and BERT architectures with advanced techniques including RAG (Retrieval-Augmented Generation), few-shot learning, and ensemble methods to determine whether textual claims accurately correspond to accompanying images.
 
